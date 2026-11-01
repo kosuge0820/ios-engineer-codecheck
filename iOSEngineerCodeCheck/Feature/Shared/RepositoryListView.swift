@@ -29,6 +29,7 @@ struct RepositoryRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(repository.fullName)
+                .foregroundStyle(.primary)
 
             Spacer(minLength: 16)
 
