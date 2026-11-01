@@ -80,17 +80,25 @@ struct UserDefaultsBookmarkStorageTests {
         #expect(temporary.defaults.data(forKey: backupKey) == garbage)
     }
 
-    @Test("既に退避データがあれば、新たに壊れたデータで上書きしない")
-    func existingBackupIsNotOverwritten() throws {
-        let backupKey = UserDefaultsBookmarkStorage.unreadableBackupKey(for: UserDefaultsBookmarkStorage.currentKey)
+    @Test("既に退避データがあっても、新たに壊れたデータは別の退避キーに残す")
+    func secondUnreadableBlobIsAlsoPreserved() throws {
+        let firstBackupKey = UserDefaultsBookmarkStorage.unreadableBackupKey(for: UserDefaultsBookmarkStorage.currentKey)
         let older = Data("older garbage".utf8)
-        temporary.defaults.set(older, forKey: backupKey)
-        temporary.defaults.set(Data("newer garbage".utf8), forKey: UserDefaultsBookmarkStorage.currentKey)
+        let newer = Data("newer garbage".utf8)
+        temporary.defaults.set(older, forKey: firstBackupKey)
+        temporary.defaults.set(newer, forKey: UserDefaultsBookmarkStorage.currentKey)
 
         #expect(throws: BookmarkStorageError.self) {
             try storage.load()
         }
-        #expect(temporary.defaults.data(forKey: backupKey) == older)
+
+        #expect(temporary.defaults.data(forKey: firstBackupKey) == older, "先に退避したものは消さない")
+        let secondBackupKey = UserDefaultsBookmarkStorage.unreadableBackupKey(for: UserDefaultsBookmarkStorage.currentKey, index: 2)
+        #expect(temporary.defaults.data(forKey: secondBackupKey) == newer, "2 回目に壊れたデータも次の save で消えないよう残す")
+
+        try storage.save([.fixture(id: 1)])
+        #expect(temporary.defaults.data(forKey: firstBackupKey) == older)
+        #expect(temporary.defaults.data(forKey: secondBackupKey) == newer)
     }
 
     @Test("旧キーが壊れていれば throw し、旧キーは残して退避キーにも複製する")

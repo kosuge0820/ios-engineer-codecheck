@@ -5,15 +5,18 @@ import Foundation
 /// - 保存形式は API モデルと切り離した `BookmarkRecordV1`（キー `bookmarks.v1`）。
 /// - 旧キー `data`（`id` を持たない形式）は一度だけ読み込んで v1 に移行し、成功したら旧キーを消す。
 /// - 解釈できないデータは例外にし、黙って消さない。元キーは次の `save` で上書きされるため、
-///   退避キー（`<元のキー>.unreadable`）へ複製してから例外を投げる。
+///   退避キー（`<元のキー>.unreadable`、2 回目以降は `.unreadable.2` …）へ複製してから例外を投げる。
 struct UserDefaultsBookmarkStorage: BookmarkStoring {
     static let currentKey = "bookmarks.v1"
     static let legacyKey = "data"
 
-    /// 解釈できなかった保存データの退避先。既に退避データがあれば上書きしない。
-    static func unreadableBackupKey(for key: String) -> String {
-        "\(key).unreadable"
+    /// 解釈できなかった保存データの退避先。`index` は何回目の退避か（1 始まり）。既存の退避データは上書きしない。
+    static func unreadableBackupKey(for key: String, index: Int = 1) -> String {
+        index <= 1 ? "\(key).unreadable" : "\(key).unreadable.\(index)"
     }
+
+    /// 退避キーを探す上限。これを超えるほど壊れ続ける状況は想定せず、最後のキーに上書きする。
+    private static let maxUnreadableBackups = 20
 
     private let defaults: UserDefaults
 
@@ -66,13 +69,10 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
 
     /// 解釈できなかったデータを退避キーへ複製し、呼び出し元が投げるエラーを返す。
     private func preserveUnreadable(_ data: Data, key: String, reason: String) -> BookmarkStorageError {
-        let backupKey = Self.unreadableBackupKey(for: key)
-        if defaults.data(forKey: backupKey) == nil {
-            defaults.set(data, forKey: backupKey)
-            Log.persistence.error("キー \(key) の保存データを解釈できないため \(backupKey) へ退避した: \(reason)")
-        } else {
-            Log.persistence.error("キー \(key) の保存データを解釈できない。退避先 \(backupKey) は既存のものを保持: \(reason)")
-        }
+        let candidates = (1...Self.maxUnreadableBackups).map { Self.unreadableBackupKey(for: key, index: $0) }
+        let backupKey = candidates.first { defaults.data(forKey: $0) == nil } ?? candidates[candidates.count - 1]
+        defaults.set(data, forKey: backupKey)
+        Log.persistence.error("キー \(key) の保存データを解釈できないため \(backupKey) へ退避した: \(reason)")
         return .corruptedData(key: key, reason: reason)
     }
 }
