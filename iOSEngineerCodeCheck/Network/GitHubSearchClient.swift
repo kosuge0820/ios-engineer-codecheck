@@ -51,12 +51,26 @@ struct GitHubSearchClient: RepositorySearching {
         }
     }
 
+    /// クエリ値にそのまま残してよい文字。
+    ///
+    /// `URLComponents.queryItems` は RFC 3986 でクエリに許される `+` `&` `=` を符号化しないが、
+    /// GitHub はクエリ文字列の `+` を空白、`&` `=` を区切りとして解釈するため、これらは必ず符号化する。
+    private static let queryValueAllowed: CharacterSet = {
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "+&=")
+        return allowed
+    }()
+
     private func makeRequest(query: String) throws(GitHubSearchError) -> URLRequest {
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: Self.queryValueAllowed) else {
+            throw .invalidQuery(message: "検索語を URL 用に符号化できません: \(query)")
+        }
+
         var components = URLComponents()
         components.scheme = "https"
         components.host = "api.github.com"
         components.path = "/search/repositories"
-        components.queryItems = [URLQueryItem(name: "q", value: query)]
+        components.percentEncodedQueryItems = [URLQueryItem(name: "q", value: encodedQuery)]
 
         guard let url = components.url else {
             throw .invalidQuery(message: "URL を構築できません: \(query)")
