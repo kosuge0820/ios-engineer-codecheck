@@ -1,0 +1,27 @@
+{
+  "total_count": 1,
+  "incomplete_results": false,
+  "items": [
+    {
+      "id": 123456789,
+      "name": "design-docs",
+      "full_name": "example/design-docs",
+      "private": false,
+      "html_url": "https://github.com/example/design-docs",
+      "description": "Documentation only repository",
+      "fork": false,
+      "language": null,
+      "stargazers_count": 12,
+      "watchers_count": 12,
+      "forks_count": 3,
+      "open_issues_count": 1,
+      "owner": {
+        "login": "example",
+        "id": 1,
+        "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4",
+        "html_url": "https://github.com/example",
+        "type": "Organization"
+      }
+    }
+  ]
+}
