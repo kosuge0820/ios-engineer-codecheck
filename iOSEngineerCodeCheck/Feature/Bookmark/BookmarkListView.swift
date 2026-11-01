@@ -20,8 +20,7 @@ struct BookmarkListView: View {
             }
             .overlay {
                 if bookmarkStore.bookmarks.isEmpty {
-                    // 文言は初期実装のまま（取り違えの修正は初級-02）
-                    Text("検索ボタンをタップして")
+                    Text("ブックマークはまだありません")
                         .foregroundStyle(.secondary)
                 }
             }
