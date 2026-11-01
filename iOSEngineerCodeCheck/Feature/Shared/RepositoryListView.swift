@@ -11,6 +11,8 @@ struct RepositoryListView: View {
                     NavigationLink(value: repository) {
                         RepositoryRow(repository: repository)
                     }
+                    // 既定のボタンスタイルではラベルがアクセント色になる。詳細画面のリポジトリ名と同じラベル色（ダーク対応）で描く
+                    .buttonStyle(.plain)
                     Divider()
                 }
             }
@@ -29,7 +31,6 @@ struct RepositoryRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(repository.fullName)
-                .foregroundStyle(.primary)
 
             Spacer(minLength: 16)
 
@@ -39,5 +40,7 @@ struct RepositoryRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
+        // .plain スタイルではラベルの余白がヒット領域に入らないため、行全体をタップできるようにする
+        .contentShape(Rectangle())
     }
 }
