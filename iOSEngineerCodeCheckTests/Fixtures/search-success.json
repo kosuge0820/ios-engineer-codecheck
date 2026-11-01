@@ -1,0 +1,72 @@
+{
+  "total_count": 437679,
+  "incomplete_results": false,
+  "items": [
+    {
+      "id": 44838949,
+      "node_id": "MDEwOlJlcG9zaXRvcnk0NDgzODk0OQ==",
+      "name": "swift",
+      "full_name": "swiftlang/swift",
+      "private": false,
+      "html_url": "https://github.com/swiftlang/swift",
+      "description": "The Swift Programming Language",
+      "fork": false,
+      "language": "Swift",
+      "stargazers_count": 70530,
+      "watchers_count": 70530,
+      "forks_count": 10884,
+      "open_issues_count": 9528,
+      "default_branch": "main",
+      "archived": false,
+      "topics": [],
+      "license": {
+        "key": "apache-2.0",
+        "name": "Apache License 2.0",
+        "spdx_id": "Apache-2.0",
+        "url": "https://api.github.com/licenses/apache-2.0",
+        "node_id": "MDc6TGljZW5zZTI="
+      },
+      "owner": {
+        "login": "swiftlang",
+        "id": 42816656,
+        "avatar_url": "https://avatars.githubusercontent.com/u/42816656?v=4",
+        "html_url": "https://github.com/swiftlang",
+        "type": "Organization"
+      }
+    },
+    {
+      "id": 790019,
+      "node_id": "MDEwOlJlcG9zaXRvcnk3OTAwMTk=",
+      "name": "swift",
+      "full_name": "openstack/swift",
+      "private": false,
+      "html_url": "https://github.com/openstack/swift",
+      "description": "OpenStack Storage (Swift). Mirror of code maintained at opendev.org.",
+      "fork": false,
+      "language": "Python",
+      "stargazers_count": 2805,
+      "watchers_count": 2805,
+      "forks_count": 1073,
+      "open_issues_count": 0,
+      "default_branch": "master",
+      "archived": false,
+      "topics": [
+        "service"
+      ],
+      "license": {
+        "key": "apache-2.0",
+        "name": "Apache License 2.0",
+        "spdx_id": "Apache-2.0",
+        "url": "https://api.github.com/licenses/apache-2.0",
+        "node_id": "MDc6TGljZW5zZTI="
+      },
+      "owner": {
+        "login": "openstack",
+        "id": 324574,
+        "avatar_url": "https://avatars.githubusercontent.com/u/324574?v=4",
+        "html_url": "https://github.com/openstack",
+        "type": "Organization"
+      }
+    }
+  ]
+}

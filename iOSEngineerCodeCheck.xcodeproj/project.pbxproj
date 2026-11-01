@@ -3,19 +3,8 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 77;
 	objects = {
-
-/* Begin PBXBuildFile section */
-		A1B2C3D42CFA200100ABC001 /* DataItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D32CFA200100ABC001 /* DataItem.swift */; };
-		A1B2C3D82CFA200100ABC001 /* View2.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D72CFA200100ABC001 /* View2.swift */; };
-		A1B2C3DA2CFA200100ABC001 /* View3.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D92CFA200100ABC001 /* View3.swift */; };
-		4F8F302B2CFA100100A8C301 /* View1.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8F302A2CFA100100A8C301 /* View1.swift */; };
-		BFD945DF244DC5E80012785A /* iOSEngineerCodeCheckApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD945DE244DC5E80012785A /* iOSEngineerCodeCheckApp.swift */; };
-		BFD945E8244DC5EB0012785A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFD945E7244DC5EB0012785A /* Assets.xcassets */; };
-		BFD945F6244DC5EB0012785A /* iOSEngineerCodeCheckTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD945F5244DC5EB0012785A /* iOSEngineerCodeCheckTests.swift */; };
-		BFD94601244DC5EC0012785A /* iOSEngineerCodeCheckUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD94600244DC5EC0012785A /* iOSEngineerCodeCheckUITests.swift */; };
-/* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		BFD945F2244DC5EB0012785A /* PBXContainerItemProxy */ = {
@@ -35,21 +24,61 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A1B2C3D32CFA200100ABC001 /* DataItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataItem.swift; sourceTree = "<group>"; };
-		A1B2C3D72CFA200100ABC001 /* View2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = View2.swift; sourceTree = "<group>"; };
-		A1B2C3D92CFA200100ABC001 /* View3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = View3.swift; sourceTree = "<group>"; };
-		4F8F302A2CFA100100A8C301 /* View1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = View1.swift; sourceTree = "<group>"; };
 		BFD945DB244DC5E80012785A /* iOSEngineerCodeCheck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSEngineerCodeCheck.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BFD945DE244DC5E80012785A /* iOSEngineerCodeCheckApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSEngineerCodeCheckApp.swift; sourceTree = "<group>"; };
-		BFD945E7244DC5EB0012785A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		BFD945EC244DC5EB0012785A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BFD945F1244DC5EB0012785A /* iOSEngineerCodeCheckTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iOSEngineerCodeCheckTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		BFD945F5244DC5EB0012785A /* iOSEngineerCodeCheckTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSEngineerCodeCheckTests.swift; sourceTree = "<group>"; };
-		BFD945F7244DC5EB0012785A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BFD945FC244DC5EB0012785A /* iOSEngineerCodeCheckUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iOSEngineerCodeCheckUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		BFD94600244DC5EC0012785A /* iOSEngineerCodeCheckUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSEngineerCodeCheckUITests.swift; sourceTree = "<group>"; };
-		BFD94602244DC5EC0012785A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1000001000000000000AA01 /* Exceptions for "iOSEngineerCodeCheck" folder in "iOSEngineerCodeCheck" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BFD945DA244DC5E80012785A /* iOSEngineerCodeCheck */;
+		};
+		A1000001000000000000AA02 /* Exceptions for "iOSEngineerCodeCheckTests" folder in "iOSEngineerCodeCheckTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BFD945F0244DC5EB0012785A /* iOSEngineerCodeCheckTests */;
+		};
+		A1000001000000000000AA03 /* Exceptions for "iOSEngineerCodeCheckUITests" folder in "iOSEngineerCodeCheckUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BFD945FB244DC5EB0012785A /* iOSEngineerCodeCheckUITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BFD945DD244DC5E80012785A /* iOSEngineerCodeCheck */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1000001000000000000AA01 /* Exceptions for "iOSEngineerCodeCheck" folder in "iOSEngineerCodeCheck" target */,
+			);
+			path = iOSEngineerCodeCheck;
+			sourceTree = "<group>";
+		};
+		BFD945F4244DC5EB0012785A /* iOSEngineerCodeCheckTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1000001000000000000AA02 /* Exceptions for "iOSEngineerCodeCheckTests" folder in "iOSEngineerCodeCheckTests" target */,
+			);
+			path = iOSEngineerCodeCheckTests;
+			sourceTree = "<group>";
+		};
+		BFD945FF244DC5EB0012785A /* iOSEngineerCodeCheckUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1000001000000000000AA03 /* Exceptions for "iOSEngineerCodeCheckUITests" folder in "iOSEngineerCodeCheckUITests" target */,
+			);
+			path = iOSEngineerCodeCheckUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		BFD945D8244DC5E80012785A /* Frameworks */ = {
@@ -96,38 +125,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		BFD945DD244DC5E80012785A /* iOSEngineerCodeCheck */ = {
-			isa = PBXGroup;
-			children = (
-				BFD945DE244DC5E80012785A /* iOSEngineerCodeCheckApp.swift */,
-				A1B2C3D32CFA200100ABC001 /* DataItem.swift */,
-				4F8F302A2CFA100100A8C301 /* View1.swift */,
-				A1B2C3D72CFA200100ABC001 /* View2.swift */,
-				A1B2C3D92CFA200100ABC001 /* View3.swift */,
-				BFD945E7244DC5EB0012785A /* Assets.xcassets */,
-				BFD945EC244DC5EB0012785A /* Info.plist */,
-			);
-			path = iOSEngineerCodeCheck;
-			sourceTree = "<group>";
-		};
-		BFD945F4244DC5EB0012785A /* iOSEngineerCodeCheckTests */ = {
-			isa = PBXGroup;
-			children = (
-				BFD945F5244DC5EB0012785A /* iOSEngineerCodeCheckTests.swift */,
-				BFD945F7244DC5EB0012785A /* Info.plist */,
-			);
-			path = iOSEngineerCodeCheckTests;
-			sourceTree = "<group>";
-		};
-		BFD945FF244DC5EB0012785A /* iOSEngineerCodeCheckUITests */ = {
-			isa = PBXGroup;
-			children = (
-				BFD94600244DC5EC0012785A /* iOSEngineerCodeCheckUITests.swift */,
-				BFD94602244DC5EC0012785A /* Info.plist */,
-			);
-			path = iOSEngineerCodeCheckUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -142,6 +139,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BFD945DD244DC5E80012785A /* iOSEngineerCodeCheck */,
 			);
 			name = iOSEngineerCodeCheck;
 			productName = iOSEngineerCodeCheck;
@@ -161,6 +161,9 @@
 			dependencies = (
 				BFD945F3244DC5EB0012785A /* PBXTargetDependency */,
 			);
+			fileSystemSynchronizedGroups = (
+				BFD945F4244DC5EB0012785A /* iOSEngineerCodeCheckTests */,
+			);
 			name = iOSEngineerCodeCheckTests;
 			productName = iOSEngineerCodeCheckTests;
 			productReference = BFD945F1244DC5EB0012785A /* iOSEngineerCodeCheckTests.xctest */;
@@ -178,6 +181,9 @@
 			);
 			dependencies = (
 				BFD945FE244DC5EB0012785A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BFD945FF244DC5EB0012785A /* iOSEngineerCodeCheckUITests */,
 			);
 			name = iOSEngineerCodeCheckUITests;
 			productName = iOSEngineerCodeCheckUITests;
@@ -209,7 +215,6 @@
 				};
 			};
 			buildConfigurationList = BFD945D6244DC5E80012785A /* Build configuration list for PBXProject "iOSEngineerCodeCheck" */;
-			compatibilityVersion = "Xcode 15.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -217,6 +222,8 @@
 				Base,
 			);
 			mainGroup = BFD945D2244DC5E80012785A;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			productRefGroup = BFD945DC244DC5E80012785A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -233,7 +240,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFD945E8244DC5EB0012785A /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,11 +264,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1B2C3D42CFA200100ABC001 /* DataItem.swift in Sources */,
-				4F8F302B2CFA100100A8C301 /* View1.swift in Sources */,
-				A1B2C3D82CFA200100ABC001 /* View2.swift in Sources */,
-				A1B2C3DA2CFA200100ABC001 /* View3.swift in Sources */,
-				BFD945DF244DC5E80012785A /* iOSEngineerCodeCheckApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,7 +271,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFD945F6244DC5EB0012785A /* iOSEngineerCodeCheckTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,7 +278,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFD94601244DC5EC0012785A /* iOSEngineerCodeCheckUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

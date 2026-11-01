@@ -1,0 +1,13 @@
+{
+  "message": "Validation Failed",
+  "errors": [
+    {
+      "message": "The search is longer than 256 characters.",
+      "resource": "Search",
+      "field": "q",
+      "code": "invalid"
+    }
+  ],
+  "documentation_url": "https://docs.github.com/v3/search/",
+  "status": "422"
+}
