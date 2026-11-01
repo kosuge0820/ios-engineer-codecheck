@@ -1,4 +1,5 @@
 import Foundation
+import Testing
 @testable import iOSEngineerCodeCheck
 
 /// 通信を差し替えるスタブ。応答内容・エラー・完了順序・遅延をテスト側から制御できる。
@@ -36,9 +37,15 @@ actor StubRepositorySearcher: RepositorySearching {
         }
     }
 
-    /// `search` が `count` 回呼ばれるまで待つ。
-    func waitForCalls(_ count: Int) async {
+    /// `search` が `count` 回呼ばれるまで待つ。`timeout` を過ぎたら Issue として記録して戻る（テストをハングさせない）。
+    func waitForCalls(_ count: Int, timeout: Duration = .seconds(5)) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
         while receivedQueries.count < count {
+            if clock.now >= deadline {
+                Issue.record("StubRepositorySearcher: search が \(count) 回呼ばれるのを \(timeout) 待ったが \(receivedQueries.count) 回だった")
+                return
+            }
             await Task.yield()
         }
     }
