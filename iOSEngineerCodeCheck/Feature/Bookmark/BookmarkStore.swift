@@ -27,15 +27,24 @@ final class BookmarkStore {
         index(of: repository) != nil
     }
 
-    /// 未登録なら追加する。旧データ由来の暫定 id の項目に同じリポジトリの実 id が来たら、その項目を実 id の値に置き換えて保存する。
+    /// 未登録なら追加する。登録済みなら暫定 id の置き換えだけを試みる（`resolveProvisionalID(with:)`）。
     func add(_ repository: Repository) {
-        if let index = index(of: repository) {
-            guard bookmarks[index].hasProvisionalID, !repository.hasProvisionalID else { return }
-            bookmarks[index] = repository
-            persist()
+        if isBookmarked(repository) {
+            resolveProvisionalID(with: repository)
             return
         }
         bookmarks.append(repository)
+        persist()
+    }
+
+    /// 旧データ由来の暫定 id の項目に、同じリポジトリの実 id が分かった時点で置き換えて保存する。
+    ///
+    /// 詳細画面の表示時にも呼ぶ。`isBookmarked` が true の経路では `add` が呼ばれないため、ここで置き換えないと暫定 id が残り続ける。
+    func resolveProvisionalID(with repository: Repository) {
+        guard !repository.hasProvisionalID,
+              let index = index(of: repository),
+              bookmarks[index].hasProvisionalID else { return }
+        bookmarks[index] = repository
         persist()
     }
 

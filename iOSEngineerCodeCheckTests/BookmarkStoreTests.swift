@@ -157,4 +157,40 @@ struct BookmarkStoreTests {
         store.add(fromSearch)
         #expect(storage.saveCount == 1, "実 id になった後は二重 add で保存しない")
     }
+
+    @Test("暫定 id の項目は、同じ fullName の実 id を知った時点（add を経ずに）で置き換えて保存する")
+    func resolvesProvisionalIDWithoutAdd() {
+        let legacy = Repository.fixture(
+            id: Repository.provisionalID(fullName: "swiftlang/swift"),
+            fullName: "swiftlang/swift",
+            stargazersCount: 70_529
+        )
+        let storage = InMemoryBookmarkStorage(stored: [legacy])
+        let store = BookmarkStore(storage: storage)
+        let fromSearch = Repository.fixture(id: 44_838_949, fullName: "swiftlang/swift", stargazersCount: 70_530)
+
+        store.resolveProvisionalID(with: fromSearch)
+
+        #expect(store.bookmarks == [fromSearch])
+        #expect(storage.stored == [fromSearch])
+        #expect(storage.saveCount == 1)
+        #expect(store.isBookmarked(fromSearch), "置き換え後も Remove ボタンのままで、詳細画面の表示は変わらない")
+
+        store.resolveProvisionalID(with: fromSearch)
+        #expect(storage.saveCount == 1, "実 id になった後は何もしない")
+    }
+
+    @Test("resolveProvisionalID は未登録のリポジトリや実 id の項目には何もしない")
+    func resolveProvisionalIDIgnoresOthers() {
+        let real = Repository.fixture(id: 1, fullName: "a/one", stargazersCount: 1)
+        let storage = InMemoryBookmarkStorage(stored: [real])
+        let store = BookmarkStore(storage: storage)
+
+        store.resolveProvisionalID(with: Repository.fixture(id: 2, fullName: "b/two"))
+        store.resolveProvisionalID(with: Repository.fixture(id: 1, fullName: "a/one", stargazersCount: 99))
+        store.resolveProvisionalID(with: Repository.fixture(id: Repository.provisionalID(fullName: "a/one"), fullName: "a/one"))
+
+        #expect(store.bookmarks == [real], "未登録は追加しない。実 id 同士は更新しない。暫定 id で上書きしない")
+        #expect(storage.saveCount == 0)
+    }
 }
