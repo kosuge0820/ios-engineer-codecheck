@@ -34,8 +34,6 @@ struct RootView: View {
             }
             .tag(Tab.search)
         }
-        .tint(.black)
-        .background(.ultraThinMaterial)
         .onChange(of: selectedTab) { _, newValue in
             guard newValue == .search else {
                 isSearchFieldFocused = false
