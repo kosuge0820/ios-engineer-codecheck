@@ -88,4 +88,96 @@ struct SearchModelTests {
 
         #expect(model.state == .idle)
     }
+
+    @Test("先に投げた古い検索の応答が後から届いても、新しい検索の結果を上書きしない")
+    func staleResponseDoesNotOverwriteNewerResult() async {
+        let stub = StubRepositorySearcher()
+        await stub.hold()
+        let model = SearchModel(searcher: stub)
+
+        model.query = "old"
+        let first = Task { await model.search() }
+        await stub.waitForCalls(1)
+
+        model.query = "new"
+        let second = Task { await model.search() }
+        await stub.waitForCalls(2)
+
+        let newItems = [Repository.fixture(id: 2, fullName: "new/repo")]
+        await stub.resume(call: 1, with: .success(.fixture(newItems)))
+        await second.value
+        #expect(model.state == .loaded(newItems))
+
+        let oldItems = [Repository.fixture(id: 1, fullName: "old/repo")]
+        await stub.resume(call: 0, with: .success(.fixture(oldItems)))
+        await first.value
+        #expect(model.state == .loaded(newItems), "古い応答で新しい結果を上書きしてはいけない")
+    }
+
+    @Test("古い検索が失敗で終わっても、新しい検索の結果を failed で上書きしない")
+    func staleFailureDoesNotOverwriteNewerResult() async {
+        let stub = StubRepositorySearcher()
+        await stub.hold()
+        let model = SearchModel(searcher: stub)
+
+        model.query = "old"
+        let first = Task { await model.search() }
+        await stub.waitForCalls(1)
+
+        model.query = "new"
+        let second = Task { await model.search() }
+        await stub.waitForCalls(2)
+
+        let newItems = [Repository.fixture(id: 2, fullName: "new/repo")]
+        await stub.resume(call: 1, with: .success(.fixture(newItems)))
+        await second.value
+
+        await stub.resume(call: 0, with: .failure(.rateLimited))
+        await first.value
+        #expect(model.state == .loaded(newItems))
+    }
+
+    @Test("検索中に reset すると、その後に届いた応答は捨てられ idle のまま")
+    func inFlightResponseIsDiscardedAfterReset() async {
+        let stub = StubRepositorySearcher()
+        await stub.hold()
+        let model = SearchModel(searcher: stub)
+
+        model.query = "swift"
+        let searching = Task { await model.search() }
+        await stub.waitForCalls(1)
+        #expect(model.state == .loading)
+
+        model.reset()
+        #expect(model.state == .idle)
+
+        await stub.resume(call: 0, with: .success(.fixture([.fixture()])))
+        await searching.value
+        #expect(model.state == .idle, "捨てた検索の応答が結果として表示されてはいけない")
+    }
+
+    @Test("reset 後に改めて検索すれば、新しい応答は通常どおり反映される")
+    func searchAfterResetStillWorks() async {
+        let stub = StubRepositorySearcher()
+        await stub.hold()
+        let model = SearchModel(searcher: stub)
+
+        model.query = "first"
+        let first = Task { await model.search() }
+        await stub.waitForCalls(1)
+        model.reset()
+
+        model.query = "second"
+        let second = Task { await model.search() }
+        await stub.waitForCalls(2)
+
+        let items = [Repository.fixture(id: 9, fullName: "second/repo")]
+        await stub.resume(call: 1, with: .success(.fixture(items)))
+        await second.value
+        #expect(model.state == .loaded(items))
+
+        await stub.resume(call: 0, with: .success(.fixture([.fixture(id: 1, fullName: "first/repo")])))
+        await first.value
+        #expect(model.state == .loaded(items))
+    }
 }
