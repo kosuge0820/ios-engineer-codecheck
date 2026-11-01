@@ -11,15 +11,20 @@ GitHub リポジトリを検索し、ブックマークできる iOS アプリ�
 
 ## 実行方法
 
-ローカルと CI は同じ入り口を使う。
+ローカルと CI は同じコマンドを使う（`Makefile` は中級-01 で追加予定。それまでは以下を直接実行する）。
 
 ```bash
-make build   # シミュレータ向けビルド
-make test    # 単体テスト（xcresult を build/ に出力）
-make lint    # 静的解析（導入している場合）
+# シミュレータ向けビルド
+xcodebuild build -project iOSEngineerCodeCheck.xcodeproj -scheme iOSEngineerCodeCheck \
+  -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO
+
+# 単体テスト（xcresult を build/ に出力）
+xcodebuild test -project iOSEngineerCodeCheck.xcodeproj -scheme iOSEngineerCodeCheck \
+  -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO \
+  -resultBundlePath build/test.xcresult
 ```
 
-シミュレータ名と OS は `Makefile` 先頭の変数で変更できる。失敗時は `xcresult` を Xcode で開くか、`xcrun xcresulttool` で失敗テストを確認する。
+シミュレータ名と OS は `-destination` で変更できる（`xcrun simctl list devices` で確認）。失敗時は `xcresult` を Xcode で開くか、`xcrun xcresulttool get test-results tests --path build/test.xcresult` で失敗テストを確認する。
 
 ## 構成
 
@@ -39,7 +44,7 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 
 ## 設計上の約束
 
-- 検索状態は列挙型で明示する（初期 / 読み込み中 / 結果あり / 0 件 / 失敗 / 追加読み込み中）。UI はこれを区別して表示する
+- 検索状態は列挙型で明示する（初期 / 読み込み中 / 結果あり / 0 件 / 失敗。追加読み込み中は中級-02 で加える）。UI はこれを区別して表示する
 - 進行中の検索 `Task` は保持してキャンセルし、応答到着時に世代を照合する。古い応答で新しい結果を上書きしない
 - 強制アンラップ、`try?`、空の `catch`、`@unchecked Sendable`、`nonisolated(unsafe)` を増やさない。失敗は `os.Logger` に記録し、必要なら UI に伝える
 - ブックマークは Search / Bookmark どちらの画面からも同じストアを通して更新し、即座に保存する
@@ -47,17 +52,17 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 
 ## テストの約束
 
-- テストは実ネットワークと端末の `UserDefaults` に触れない。通信はスタブ、永続化は `UserDefaults(suiteName:)` で隔離し `tearDown` で破棄する
+- テストは実ネットワークと端末の `UserDefaults` に触れない。通信はスタブ、永続化は `UserDefaults(suiteName:)` で隔離し、テスト終了時に `removePersistentDomain` で破棄する（`TemporaryDefaults` の `deinit`）
 - スタブ通信クライアントは応答の遅延・順序・エラーを制御できる
 - バグ修正には「修正前に失敗し、修正後に通る」テストを付ける
-- フィクスチャ JSON は `Tests/Fixtures/` に置く（成功 / 0 件 / 403 / 422 / `items` 欠落 / `language: null`）
+- フィクスチャ JSON は `iOSEngineerCodeCheckTests/Fixtures/` に置き、`Fixture.data(_:)` で読む（成功 / 0 件 / 403 / 422 / `items` 欠落 / `language: null` / 旧形式ブックマーク）
 
 ## 作業の流れ
 
 - 作業ブランチは `main` から切る。1 PR には 1 Issue の変更だけを含める
 - PR 本文には対象 Issue、変更理由、検証（ビルド・テスト・手動確認した仕様番号）、対象外とした範囲を書く
 - コミットは小さく、メッセージは「何を・なぜ」
-- 変更前に `make test` が通ることを確認し、変更後も通してから PR を出す
+- 変更前に単体テストが通ることを確認し、変更後も通してから PR を出す
 
 ## コーディングエージェントへの補足
 
