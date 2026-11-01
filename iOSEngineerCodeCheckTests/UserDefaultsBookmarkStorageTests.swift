@@ -36,7 +36,10 @@ struct UserDefaultsBookmarkStorageTests {
 
         let migrated = try storage.load()
 
-        #expect(migrated.map(\.fullName) == ["swiftlang/swift", "example/design-docs"])
+        #expect(
+            migrated.map(\.fullName) == ["swiftlang/swift", "example/design-docs"],
+            "旧アプリで Remove された項目（marked: false）は移行しない。marked 無しは移行する"
+        )
         #expect(migrated.map(\.language) == ["Swift", nil])
         #expect(migrated[0].stargazersCount == 70529)
         #expect(migrated[0].owner.avatarURL.absoluteString == "https://avatars.githubusercontent.com/u/42816656?v=4")

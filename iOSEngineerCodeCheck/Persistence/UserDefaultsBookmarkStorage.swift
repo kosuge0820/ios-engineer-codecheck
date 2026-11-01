@@ -30,15 +30,19 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
             return []
         }
         let legacyRecords = try decode([LegacyBookmarkRecord].self, from: legacyData, key: Self.legacyKey)
+        // 旧アプリは Bookmark タブから Remove した項目を marked: false のまま保存していたので、利用者の意図どおり移行しない
+        let activeRecords = legacyRecords.filter { $0.marked != false }
         let migrated: [Repository]
         do {
-            migrated = try legacyRecords.map { try $0.repository() }
+            migrated = try activeRecords.map { try $0.repository() }
         } catch {
             throw preserveUnreadable(legacyData, key: Self.legacyKey, reason: String(describing: error))
         }
         try save(migrated)
         defaults.removeObject(forKey: Self.legacyKey)
-        Log.persistence.notice("旧キー \(Self.legacyKey) から \(migrated.count) 件を \(Self.currentKey) へ移行した")
+        Log.persistence.notice(
+            "旧キー \(Self.legacyKey) から \(migrated.count) 件を \(Self.currentKey) へ移行した（Remove 済み \(legacyRecords.count - activeRecords.count) 件は除外）"
+        )
         return migrated
     }
 
@@ -110,6 +114,7 @@ private struct BookmarkRecordV1: Codable {
 }
 
 /// 旧キー `data` の形式（初期実装が `DataItem` をそのまま保存していたもの）。GitHub の `id` を持たない。
+/// `marked` は旧アプリのブックマーク状態。`false` は Remove 済み、`nil` は未設定（ブックマーク扱い）。
 private struct LegacyBookmarkRecord: Decodable {
     struct Owner: Decodable {
         let avatarUrl: String
@@ -127,6 +132,7 @@ private struct LegacyBookmarkRecord: Decodable {
     let forksCount: Int
     let openIssuesCount: Int
     let owner: Owner
+    let marked: Bool?
 
     func repository() throws -> Repository {
         guard let avatarURL = URL(string: owner.avatarUrl) else {
