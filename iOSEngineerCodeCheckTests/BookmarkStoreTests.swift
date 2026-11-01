@@ -14,10 +14,34 @@ struct BookmarkStoreTests {
         #expect(store.isBookmarked(saved[0]))
     }
 
-    @Test("読み込みに失敗しても空で起動し、クラッシュしない")
+    @Test("読み込みに失敗しても空で起動し、失敗したことを UI 向けに保持する")
     func startsEmptyWhenLoadFails() {
         let store = BookmarkStore(storage: InMemoryBookmarkStorage(failsOnLoad: true))
         #expect(store.bookmarks.isEmpty)
+        #expect(store.failedToLoad)
+    }
+
+    @Test("正常に読み込めたときは失敗フラグが立たない")
+    func loadFlagIsClearWhenLoadSucceeds() {
+        let store = BookmarkStore(storage: InMemoryBookmarkStorage())
+        #expect(!store.failedToLoad)
+    }
+
+    @Test("読めなかった保存データは、その後の add で上書きされず退避先に残る")
+    func unreadableStoredDataSurvivesFirstAdd() throws {
+        let temporary = try TemporaryDefaults()
+        let unreadable = Data("not json".utf8)
+        temporary.defaults.set(unreadable, forKey: UserDefaultsBookmarkStorage.currentKey)
+
+        let store = BookmarkStore(storage: UserDefaultsBookmarkStorage(defaults: temporary.defaults))
+        #expect(store.bookmarks.isEmpty)
+        #expect(store.failedToLoad)
+
+        store.add(.fixture(id: 1))
+
+        #expect(store.bookmarks == [.fixture(id: 1)])
+        let backupKey = UserDefaultsBookmarkStorage.unreadableBackupKey(for: UserDefaultsBookmarkStorage.currentKey)
+        #expect(temporary.defaults.data(forKey: backupKey) == unreadable, "読めなかった保存データを黙って消してはいけない")
     }
 
     @Test("add すると一覧に入り、即座に保存される")

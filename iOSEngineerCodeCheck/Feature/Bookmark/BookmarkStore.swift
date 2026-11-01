@@ -6,6 +6,9 @@ import Observation
 @MainActor
 final class BookmarkStore {
     private(set) var bookmarks: [Repository] = []
+    /// 起動時に保存データを読めなかったとき true。UI はこれを見て利用者に伝える。
+    /// 読めなかったデータはストレージ側で退避されており、以降の保存で上書きされない。
+    private(set) var failedToLoad = false
 
     private let storage: any BookmarkStoring
 
@@ -16,6 +19,7 @@ final class BookmarkStore {
         } catch {
             Log.persistence.error("ブックマークを読み込めないため空で開始する: \(String(describing: error))")
             bookmarks = []
+            failedToLoad = true
         }
     }
 
