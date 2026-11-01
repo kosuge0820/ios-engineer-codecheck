@@ -17,7 +17,7 @@ final class BookmarkStore {
         do {
             bookmarks = try storage.load()
         } catch {
-            Log.persistence.error("ブックマークを読み込めないため空で開始する: \(String(describing: error))")
+            Log.persistence.error("ブックマークを読み込めないため空で開始する: \(String(describing: error), privacy: .public)")
             bookmarks = []
             failedToLoad = true
         }
@@ -73,7 +73,7 @@ final class BookmarkStore {
         do {
             try storage.save(bookmarks)
         } catch {
-            Log.persistence.error("ブックマークの保存に失敗（画面上の状態は維持）: \(String(describing: error))")
+            Log.persistence.error("ブックマークの保存に失敗（画面上の状態は維持）: \(String(describing: error), privacy: .public)")
         }
     }
 }

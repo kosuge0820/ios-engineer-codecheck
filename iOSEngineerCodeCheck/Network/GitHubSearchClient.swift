@@ -18,15 +18,15 @@ struct GitHubSearchClient: RepositorySearching {
         do {
             (data, response) = try await session.data(for: request)
         } catch let error as URLError {
-            Log.network.error("検索リクエストに失敗: \(error.code.rawValue) \(error.localizedDescription)")
+            Log.network.error("検索リクエストに失敗: \(error.code.rawValue) \(error.localizedDescription, privacy: .public)")
             throw .network(error)
         } catch {
-            Log.network.error("検索リクエストに失敗（URLError 以外）: \(error)")
+            Log.network.error("検索リクエストに失敗（URLError 以外）: \(String(describing: error), privacy: .public)")
             throw .network(URLError(.unknown))
         }
 
         guard let http = response as? HTTPURLResponse else {
-            Log.network.error("HTTP 応答ではない: \(type(of: response))")
+            Log.network.error("HTTP 応答ではない: \(String(describing: type(of: response)), privacy: .public)")
             throw .invalidResponse("HTTP 応答ではない")
         }
 
@@ -35,15 +35,15 @@ struct GitHubSearchClient: RepositorySearching {
             do {
                 return try JSONDecoder().decode(SearchResponse.self, from: data)
             } catch {
-                Log.network.error("検索応答のデコードに失敗: \(error)")
+                Log.network.error("検索応答のデコードに失敗: \(String(describing: error), privacy: .public)")
                 throw .invalidResponse(String(describing: error))
             }
         case 403, 429:
-            Log.network.notice("レート制限 (HTTP \(http.statusCode)): \(Self.errorMessage(from: data))")
+            Log.network.notice("レート制限 (HTTP \(http.statusCode)): \(Self.errorMessage(from: data), privacy: .public)")
             throw .rateLimited
         case 422:
             let message = Self.errorMessage(from: data)
-            Log.network.notice("クエリが拒否された (HTTP 422): \(message)")
+            Log.network.notice("クエリが拒否された (HTTP 422): \(message, privacy: .public)")
             throw .invalidQuery(message: message)
         default:
             Log.network.error("想定外のステータス: HTTP \(http.statusCode)")
@@ -95,7 +95,7 @@ struct GitHubSearchClient: RepositorySearching {
             body = try JSONDecoder().decode(ErrorBody.self, from: data)
         } catch {
             // エラー本文が想定形式でなくても呼び出し元の分岐（ステータス別）は変わらないので、先頭だけを文言にする
-            Log.network.debug("エラー本文を解釈できない: \(error)")
+            Log.network.debug("エラー本文を解釈できない: \(String(describing: error), privacy: .public)")
             return String(decoding: data.prefix(200), as: UTF8.self)
         }
         let details = (body.errors ?? []).compactMap(\.message)

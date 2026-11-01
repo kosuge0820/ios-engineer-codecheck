@@ -61,7 +61,7 @@ final class SearchModel {
         case .success(let response):
             state = response.items.isEmpty ? .empty : .loaded(response.items)
         case .failure(let error):
-            Log.search.error("検索に失敗: \(String(describing: error))")
+            Log.search.error("検索に失敗: \(String(describing: error), privacy: .public)")
             state = .failed(error)
         }
     }

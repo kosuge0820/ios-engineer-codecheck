@@ -44,7 +44,7 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
         try save(migrated)
         defaults.removeObject(forKey: Self.legacyKey)
         Log.persistence.notice(
-            "旧キー \(Self.legacyKey) から \(migrated.count) 件を \(Self.currentKey) へ移行した（Remove 済み \(legacyRecords.count - activeRecords.count) 件は除外）"
+            "旧キー \(Self.legacyKey, privacy: .public) から \(migrated.count) 件を \(Self.currentKey, privacy: .public) へ移行した（Remove 済み \(legacyRecords.count - activeRecords.count) 件は除外）"
         )
         return migrated
     }
@@ -54,7 +54,7 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
         do {
             defaults.set(try JSONEncoder().encode(records), forKey: Self.currentKey)
         } catch {
-            Log.persistence.error("ブックマークのエンコードに失敗: \(error)")
+            Log.persistence.error("ブックマークのエンコードに失敗: \(String(describing: error), privacy: .public)")
             throw BookmarkStorageError.writeFailed(key: Self.currentKey, reason: String(describing: error))
         }
     }
@@ -72,7 +72,7 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
         let candidates = (1...Self.maxUnreadableBackups).map { Self.unreadableBackupKey(for: key, index: $0) }
         let backupKey = candidates.first { defaults.data(forKey: $0) == nil } ?? candidates[candidates.count - 1]
         defaults.set(data, forKey: backupKey)
-        Log.persistence.error("キー \(key) の保存データを解釈できないため \(backupKey) へ退避した: \(reason)")
+        Log.persistence.error("キー \(key, privacy: .public) の保存データを解釈できないため \(backupKey, privacy: .public) へ退避した: \(reason, privacy: .public)")
         return .corruptedData(key: key, reason: reason)
     }
 }
