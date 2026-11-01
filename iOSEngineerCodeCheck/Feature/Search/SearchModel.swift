@@ -30,10 +30,8 @@ final class SearchModel {
     /// 検索を開始・破棄するたびに進める。応答到着時にこの値と一致しなければ捨てる。
     private var generation = 0
 
-    /// - Parameter query: 初期の入力値。初期実装はプレースホルダ文字列を実値として入れていたので、本番ではそれを渡す（初級-02 で見直す）。
-    init(searcher: any RepositorySearching, query: String = "") {
+    init(searcher: any RepositorySearching) {
         self.searcher = searcher
-        self.query = query
     }
 
     /// 現在の `query` で検索する。空白だけなら何もしない。進行中の検索はキャンセルされ、その応答は捨てられる。

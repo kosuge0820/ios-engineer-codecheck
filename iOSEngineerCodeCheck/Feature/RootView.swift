@@ -7,7 +7,6 @@ struct RootView: View {
         case search
     }
 
-    @Environment(SearchModel.self) private var searchModel
     @State private var selectedTab = Tab.search
     @FocusState private var isSearchFieldFocused: Bool
 
@@ -38,21 +37,18 @@ struct RootView: View {
         .tint(.black)
         .background(.ultraThinMaterial)
         .onChange(of: selectedTab) { _, newValue in
-            // 初期実装の挙動をそのまま移したもの（プレースホルダ文字列の扱いとフォーカスは初級-02 で見直す）
-            if newValue == .search {
-                if searchModel.query == SearchView.placeholderText {
-                    searchModel.query = ""
-                }
-                Task { @MainActor in
-                    do {
-                        try await Task.sleep(for: .milliseconds(100))
-                    } catch {
-                        return // キャンセル時はフォーカスしない
-                    }
-                    isSearchFieldFocused = true
-                }
-            } else {
+            guard newValue == .search else {
                 isSearchFieldFocused = false
+                return
+            }
+            // タブ切替直後はまだ TextField が表示されていないので、少し待ってからフォーカスする
+            Task { @MainActor in
+                do {
+                    try await Task.sleep(for: .milliseconds(100))
+                } catch {
+                    return // キャンセル時はフォーカスしない
+                }
+                isSearchFieldFocused = true
             }
         }
     }
