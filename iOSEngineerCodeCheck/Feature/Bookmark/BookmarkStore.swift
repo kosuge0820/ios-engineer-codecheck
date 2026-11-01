@@ -23,8 +23,14 @@ final class BookmarkStore {
         index(of: repository) != nil
     }
 
+    /// 未登録なら追加する。旧データ由来の暫定 id の項目に同じリポジトリの実 id が来たら、その項目を実 id の値に置き換えて保存する。
     func add(_ repository: Repository) {
-        guard !isBookmarked(repository) else { return }
+        if let index = index(of: repository) {
+            guard bookmarks[index].hasProvisionalID, !repository.hasProvisionalID else { return }
+            bookmarks[index] = repository
+            persist()
+            return
+        }
         bookmarks.append(repository)
         persist()
     }

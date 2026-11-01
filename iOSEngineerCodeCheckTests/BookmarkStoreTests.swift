@@ -112,4 +112,25 @@ struct BookmarkStoreTests {
         #expect(store.bookmarks.isEmpty)
         #expect(storage.stored.isEmpty)
     }
+
+    @Test("暫定 id の項目は、同じ fullName の実 id を add した時点で実 id の値に置き換えて保存する")
+    func addUpgradesProvisionalID() {
+        let legacy = Repository.fixture(
+            id: Repository.provisionalID(fullName: "swiftlang/swift"),
+            fullName: "swiftlang/swift",
+            stargazersCount: 70_529
+        )
+        let storage = InMemoryBookmarkStorage(stored: [legacy])
+        let store = BookmarkStore(storage: storage)
+        let fromSearch = Repository.fixture(id: 44_838_949, fullName: "swiftlang/swift", stargazersCount: 70_530)
+
+        store.add(fromSearch)
+
+        #expect(store.bookmarks == [fromSearch])
+        #expect(storage.stored == [fromSearch])
+        #expect(storage.saveCount == 1)
+
+        store.add(fromSearch)
+        #expect(storage.saveCount == 1, "実 id になった後は二重 add で保存しない")
+    }
 }
