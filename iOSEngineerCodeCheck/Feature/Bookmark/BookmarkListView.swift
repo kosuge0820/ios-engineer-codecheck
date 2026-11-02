@@ -5,7 +5,7 @@ struct BookmarkListView: View {
     @Environment(BookmarkStore.self) private var bookmarkStore
 
     var body: some View {
-        RepositoryListView(repositories: bookmarkStore.bookmarks)
+        RepositoryListView(repositories: bookmarkStore.bookmarks, showsBookmarkState: false)
             .safeAreaInset(edge: .top) {
                 if bookmarkStore.failedToLoad {
                     Text("保存済みのブックマークを読み込めませんでした。読めなかったデータは退避してあり、新しいブックマークで上書きされることはありません。")
