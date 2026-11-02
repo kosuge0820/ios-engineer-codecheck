@@ -24,8 +24,8 @@ jobs:
     env:
       # ローカル（Xcode 27.2）と合わせる。イメージ側の 27.2 は Release Candidate ビルド。
       DEVELOPER_DIR: /Applications/Xcode_27.2.app
-      # CI 側のシミュレータ（iPhone 17 / iOS 27.0）。Makefile の既定 OS=latest で解決される
-      SIMULATOR_NAME: iPhone 17
+      # テストに使うシミュレータは下の「Create simulator」で作り、DESTINATION に UDID で渡す
+      SIMULATOR_DEVICE_TYPE: iPhone 17
     steps:
       - uses: actions/checkout@v7
 
@@ -34,6 +34,15 @@ jobs:
           xcodebuild -version
           xcrun simctl list runtimes
           xcrun swift-format --version
+
+      # イメージ既定の iPhone 17 は Apple Watch とペアリングされていて、並列テストのクローン時に
+      # 「missing runtime bundle: Apple Watch ...」で失敗する（初回 CI で確認）。ペアリング無しの
+      # シミュレータを作り直して使う。ランタイムは省略すると最新の iOS が選ばれる（Makefile の OS=latest と同じ）
+      - name: Create simulator
+        run: |
+          udid=$(xcrun simctl create "CI ${SIMULATOR_DEVICE_TYPE}" "${SIMULATOR_DEVICE_TYPE}")
+          xcrun simctl list devices | grep "$udid"
+          echo "DESTINATION=platform=iOS Simulator,id=${udid}" >> "$GITHUB_ENV"
 
       - name: Lint
         run: make lint

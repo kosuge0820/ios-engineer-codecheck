@@ -130,6 +130,7 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 
 - `.github/workflows/ci.yml` が `main` への pull request と push で動く。手順は `make lint` → `make build` → `make test` → `make test-repeat`。秘密情報は使わない
 - ランナーは `runs-on: xcode-27`（GitHub ホスト、公開プレビューのイメージ）。`macos-latest` は macOS 26 / Xcode 26 系で iOS 27 SDK が無いためビルドできない。`DEVELOPER_DIR=/Applications/Xcode_27.2.app` でローカルと同じ Xcode 27.2 に固定している（イメージ側は Release Candidate ビルドの場合がある）
+- CI のテストはワークフロー内で新規作成したシミュレータ（`xcrun simctl create`、UDID を `DESTINATION` に渡す）で実行する。イメージ既定の `iPhone 17` は Apple Watch とペアリングされており、並列テストのクローンに失敗するため
 - 失敗したときは、ジョブの Summary タブ（テスト件数と失敗一覧）→ 該当ステップのログ → アーティファクト `test-results` の `*.xcresult` を Xcode で開く、の順に見る
 - 同じブランチへの連続 push は古い実行を取り消す（`concurrency`）
 
