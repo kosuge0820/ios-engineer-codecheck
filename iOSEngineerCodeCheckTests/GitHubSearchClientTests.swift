@@ -83,4 +83,24 @@ struct GitHubSearchClientTests {
         let requested = try #require(StubURLProtocol.requestedURLs.last)
         #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=a%26b")
     }
+
+    @Test("クエリ中の + はサーバで空白と解釈されないよう %2B に符号化される")
+    func encodesPlusInQuery() async throws {
+        StubURLProtocol.register(query: "c++", status: 200, body: try Fixture.data("search-empty"))
+
+        _ = try await client.search(query: "c++")
+
+        let requested = try #require(StubURLProtocol.requestedURLs.last)
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=c%2B%2B")
+    }
+
+    @Test("空白と = を含むクエリも区切りとして漏れずに送られる")
+    func encodesSpaceAndEqualsInQuery() async throws {
+        StubURLProtocol.register(query: "language:swift a=b", status: 200, body: try Fixture.data("search-empty"))
+
+        _ = try await client.search(query: "language:swift a=b")
+
+        let requested = try #require(StubURLProtocol.requestedURLs.last)
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=language:swift%20a%3Db")
+    }
 }

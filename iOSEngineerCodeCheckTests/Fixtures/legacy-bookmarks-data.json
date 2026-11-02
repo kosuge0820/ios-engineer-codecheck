@@ -21,5 +21,17 @@
       "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
     },
     "fullName": "example/design-docs"
+  },
+  {
+    "forksCount": 5,
+    "stargazersCount": 40,
+    "openIssuesCount": 2,
+    "language": "Rust",
+    "watchersCount": 40,
+    "owner": {
+      "avatarUrl": "https://avatars.githubusercontent.com/u/2?v=4"
+    },
+    "fullName": "example/removed-in-old-app",
+    "marked": false
   }
 ]

@@ -2,9 +2,6 @@ import SwiftUI
 
 /// 検索タブ。入力と結果一覧を描画し、検索の実行は `SearchModel` に委ねる。
 struct SearchView: View {
-    /// 初期実装がプレースホルダとして実値に入れていた文字列。初級-02 で TextField の prompt に置き換える。
-    static let placeholderText = "GitHubのリポジトリを検索できるよー"
-
     @Environment(SearchModel.self) private var searchModel
     @FocusState.Binding var isSearchFieldFocused: Bool
 
@@ -13,17 +10,16 @@ struct SearchView: View {
 
         RepositoryListView(repositories: repositories)
             .safeAreaInset(edge: .top) {
-                TextField("", text: $searchModel.query)
+                TextField("検索", text: $searchModel.query, prompt: Text("GitHub のリポジトリを検索"))
                     .textFieldStyle(.roundedBorder)
                     .submitLabel(.search)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
                     .focused($isSearchFieldFocused)
-                    .onTapGesture {
-                        if searchModel.query == Self.placeholderText {
-                            searchModel.query = ""
-                        }
-                    }
                     .onSubmit {
-                        submit()
+                        Task {
+                            await searchModel.search()
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
@@ -33,6 +29,7 @@ struct SearchView: View {
                 statusView
             }
             .onChange(of: searchModel.query) { _, newValue in
+                // 入力を空にしたら結果を捨てる。進行中の検索もキャンセルされる
                 if newValue.isEmpty {
                     searchModel.reset()
                 }
@@ -50,8 +47,10 @@ struct SearchView: View {
     private var statusView: some View {
         switch searchModel.state {
         case .idle:
-            Text(Self.placeholderText)
+            Text("キーワードを入力して Search を押すと、GitHub のリポジトリを検索できます")
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
         case .loading:
             ProgressView()
         case .loaded:
@@ -64,15 +63,6 @@ struct SearchView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-        }
-    }
-
-    private func submit() {
-        if searchModel.query.trimmingCharacters(in: .whitespacesAndNewlines) == Self.placeholderText {
-            return
-        }
-        Task {
-            await searchModel.search()
         }
     }
 }

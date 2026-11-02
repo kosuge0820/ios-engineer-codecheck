@@ -4,10 +4,19 @@ import Foundation
 ///
 /// - 保存形式は API モデルと切り離した `BookmarkRecordV1`（キー `bookmarks.v1`）。
 /// - 旧キー `data`（`id` を持たない形式）は一度だけ読み込んで v1 に移行し、成功したら旧キーを消す。
-/// - 解釈できないデータは例外にし、黙って消さない。
+/// - 解釈できないデータは例外にし、黙って消さない。元キーは次の `save` で上書きされるため、
+///   退避キー（`<元のキー>.unreadable`、2 回目以降は `.unreadable.2` …）へ複製してから例外を投げる。
 struct UserDefaultsBookmarkStorage: BookmarkStoring {
     static let currentKey = "bookmarks.v1"
     static let legacyKey = "data"
+
+    /// 解釈できなかった保存データの退避先。`index` は何回目の退避か（1 始まり）。既存の退避データは上書きしない。
+    static func unreadableBackupKey(for key: String, index: Int = 1) -> String {
+        index <= 1 ? "\(key).unreadable" : "\(key).unreadable.\(index)"
+    }
+
+    /// 退避キーを探す上限。これを超えるほど壊れ続ける状況は想定せず、最後のキーに上書きする。
+    private static let maxUnreadableBackups = 20
 
     private let defaults: UserDefaults
 
@@ -23,11 +32,20 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
         guard let legacyData = defaults.data(forKey: Self.legacyKey) else {
             return []
         }
-        let migrated = try decode([LegacyBookmarkRecord].self, from: legacyData, key: Self.legacyKey)
-            .map { try $0.repository() }
+        let legacyRecords = try decode([LegacyBookmarkRecord].self, from: legacyData, key: Self.legacyKey)
+        // 旧アプリは Bookmark タブから Remove した項目を marked: false のまま保存していたので、利用者の意図どおり移行しない
+        let activeRecords = legacyRecords.filter { $0.marked != false }
+        let migrated: [Repository]
+        do {
+            migrated = try activeRecords.map { try $0.repository() }
+        } catch {
+            throw preserveUnreadable(legacyData, key: Self.legacyKey, reason: String(describing: error))
+        }
         try save(migrated)
         defaults.removeObject(forKey: Self.legacyKey)
-        Log.persistence.notice("旧キー \(Self.legacyKey) から \(migrated.count) 件を \(Self.currentKey) へ移行した")
+        Log.persistence.notice(
+            "旧キー \(Self.legacyKey, privacy: .public) から \(migrated.count) 件を \(Self.currentKey, privacy: .public) へ移行した（Remove 済み \(legacyRecords.count - activeRecords.count) 件は除外）"
+        )
         return migrated
     }
 
@@ -36,7 +54,7 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
         do {
             defaults.set(try JSONEncoder().encode(records), forKey: Self.currentKey)
         } catch {
-            Log.persistence.error("ブックマークのエンコードに失敗: \(error)")
+            Log.persistence.error("ブックマークのエンコードに失敗: \(String(describing: error), privacy: .public)")
             throw BookmarkStorageError.writeFailed(key: Self.currentKey, reason: String(describing: error))
         }
     }
@@ -45,9 +63,17 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
         do {
             return try JSONDecoder().decode(type, from: data)
         } catch {
-            Log.persistence.error("キー \(key) の保存データを解釈できない: \(error)")
-            throw BookmarkStorageError.corruptedData(key: key, reason: String(describing: error))
+            throw preserveUnreadable(data, key: key, reason: String(describing: error))
         }
+    }
+
+    /// 解釈できなかったデータを退避キーへ複製し、呼び出し元が投げるエラーを返す。
+    private func preserveUnreadable(_ data: Data, key: String, reason: String) -> BookmarkStorageError {
+        let candidates = (1...Self.maxUnreadableBackups).map { Self.unreadableBackupKey(for: key, index: $0) }
+        let backupKey = candidates.first { defaults.data(forKey: $0) == nil } ?? candidates[candidates.count - 1]
+        defaults.set(data, forKey: backupKey)
+        Log.persistence.error("キー \(key, privacy: .public) の保存データを解釈できないため \(backupKey, privacy: .public) へ退避した: \(reason, privacy: .public)")
+        return .corruptedData(key: key, reason: reason)
     }
 }
 
@@ -88,9 +114,15 @@ private struct BookmarkRecordV1: Codable {
 }
 
 /// 旧キー `data` の形式（初期実装が `DataItem` をそのまま保存していたもの）。GitHub の `id` を持たない。
+/// `marked` は旧アプリのブックマーク状態。`false` は Remove 済み、`nil` は未設定（ブックマーク扱い）。
 private struct LegacyBookmarkRecord: Decodable {
     struct Owner: Decodable {
         let avatarUrl: String
+    }
+
+    struct InvalidAvatarURL: Error, CustomStringConvertible {
+        let value: String
+        var description: String { "avatarUrl が URL として不正: \(value)" }
     }
 
     let fullName: String
@@ -100,13 +132,11 @@ private struct LegacyBookmarkRecord: Decodable {
     let forksCount: Int
     let openIssuesCount: Int
     let owner: Owner
+    let marked: Bool?
 
     func repository() throws -> Repository {
         guard let avatarURL = URL(string: owner.avatarUrl) else {
-            throw BookmarkStorageError.corruptedData(
-                key: UserDefaultsBookmarkStorage.legacyKey,
-                reason: "avatarUrl が URL として不正: \(owner.avatarUrl)"
-            )
+            throw InvalidAvatarURL(value: owner.avatarUrl)
         }
         return Repository(
             id: Repository.provisionalID(fullName: fullName),
