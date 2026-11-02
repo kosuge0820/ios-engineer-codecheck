@@ -64,8 +64,8 @@ endef
 test: check-tools ## 単体テスト（テストプラン iOSEngineerCodeCheck）。結果: build/test.xcresult、ログ: build/test.log
 	$(call run-tests,$(RESULT_BUNDLE),test.log,-testPlan $(TEST_PLAN))
 
-test-repeat: check-tools ## 非同期競合の flaky 検出: SearchModelTests を REPEAT_COUNT 回（既定 20）繰り返す
-	$(call run-tests,$(REPEAT_RESULT_BUNDLE),test-repeat.log,-testPlan $(TEST_PLAN) -only-testing:$(REPEAT_TESTS) -test-iterations $(REPEAT_COUNT) -run-tests-until-failure)
+test-repeat: check-tools ## 非同期競合の flaky 検出: SearchModelTests を REPEAT_COUNT 回（既定 20）繰り返す。計測の影響を避けるためカバレッジは無効
+	$(call run-tests,$(REPEAT_RESULT_BUNDLE),test-repeat.log,-testPlan $(TEST_PLAN) -only-testing:$(REPEAT_TESTS) -test-iterations $(REPEAT_COUNT) -run-tests-until-failure -enableCodeCoverage NO)
 
 ui-test: check-tools ## UI テスト（テストプラン iOSEngineerCodeCheckUI。make test では走らない。テストが 0 件なら失敗）
 	$(call run-tests,$(BUILD_DIR)/ui-test.xcresult,ui-test.log,-testPlan $(UI_TEST_PLAN))

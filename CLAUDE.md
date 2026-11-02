@@ -26,7 +26,7 @@ make lint && make build && make test
 | `make lint` | `swift-format lint --strict`（設定は `.swift-format`） | 指摘があれば `ファイル:行:列: error: [ルール名]` で非 0 |
 | `make build` | アプリと単体・UI テストターゲットをシミュレータ向けにビルド（`build-for-testing`）。Swift の警告はエラー扱い（プロジェクト設定） | `build/build.log` |
 | `make test` | 単体テスト（テストプラン `iOSEngineerCodeCheck`）。終了後に要約を出す | `build/test.xcresult`, `build/test.log` |
-| `make test-repeat` | `SearchModelTests` を 20 回繰り返し、非同期競合の flaky を探す | `build/test-repeat.xcresult`, `build/test-repeat.log` |
+| `make test-repeat` | `SearchModelTests` を 20 回繰り返し、非同期競合の flaky を探す。タイミングを乱さないようカバレッジ計測は無効 | `build/test-repeat.xcresult`, `build/test-repeat.log` |
 | `make ui-test` | UI テスト（テストプラン `iOSEngineerCodeCheckUI`）。`make test` では走らない | `build/ui-test.xcresult`, `build/ui-test.log` |
 | `make report` | 直近の `build/test.xcresult` の要約を再表示 | 標準出力 |
 | `make format` | `swift-format` で整形（ローカル用。CI では実行しない） | ソースを書き換える |
