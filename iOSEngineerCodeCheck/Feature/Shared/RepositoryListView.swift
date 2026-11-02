@@ -49,10 +49,8 @@ extension RepositoryListView where Footer == EmptyView {
 
 /// 一覧の 1 行。名前を 1 行目、言語と Star 数を補助行に置く。
 ///
-/// アクセシビリティサイズでは補助行を縦に並べ、単語の途中で折り返されるのを避ける。
+/// アクセシビリティサイズでは補助行を縦に並べ、単語の途中で折り返されるのを避ける（`AdaptiveStack`）。
 struct RepositoryRow: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     let summary: RepositorySummary
 
     var body: some View {
@@ -67,26 +65,18 @@ struct RepositoryRow: View {
                         .foregroundStyle(.tint)
                 }
             }
-            metadata
+            AdaptiveStack(horizontalSpacing: 12, verticalSpacing: 4) {
+                if let language = summary.language {
+                    Label(language, systemImage: RepositorySummary.languageSystemImage)
+                }
+                Label(summary.starText, systemImage: RepositorySummary.starSystemImage)
+            }
+            .labelStyle(.compact)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(summary.accessibilityLabel)
-    }
-
-    private var metadata: some View {
-        let layout =
-            dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-            : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            if let language = summary.language {
-                Label(language, systemImage: RepositorySummary.languageSystemImage)
-            }
-            Label(summary.starText, systemImage: RepositorySummary.starSystemImage)
-        }
-        .labelStyle(.compact)
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
     }
 }

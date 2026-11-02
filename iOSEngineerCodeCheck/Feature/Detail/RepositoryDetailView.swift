@@ -3,7 +3,7 @@ import SwiftUI
 /// リポジトリ詳細。名前を見出しに、統計をラベル付きの格子で示す。ブックマーク状態は `BookmarkStore` から導出する。
 ///
 /// 色はシステムのセマンティックカラーだけを使い（ダークモード対応）、文字はテキストスタイルだけで指定する（Dynamic Type）。
-/// アクセシビリティサイズではヘッダーと統計を 1 列に並べ替える。
+/// アクセシビリティサイズではヘッダー（`AdaptiveStack`）と統計を 1 列に並べ替える。
 struct RepositoryDetailView: View {
     @Environment(BookmarkStore.self) private var bookmarkStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -37,11 +37,7 @@ struct RepositoryDetailView: View {
     }
 
     private var header: some View {
-        let layout =
-            dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
-        return layout {
+        AdaptiveStack(verticalAlignment: .top, horizontalSpacing: 16, verticalSpacing: 12) {
             avatar
             VStack(alignment: .leading, spacing: 6) {
                 Text(summary.title)
@@ -79,8 +75,12 @@ struct RepositoryDetailView: View {
     }
 
     private var statsGrid: some View {
-        let minimumWidth: CGFloat = dynamicTypeSize.isAccessibilitySize ? 320 : 140
-        return LazyVGrid(columns: [GridItem(.adaptive(minimum: minimumWidth), spacing: 12)], spacing: 12) {
+        // アクセシビリティサイズでは 1 列。それ以外は幅に応じて 2 列以上
+        let columns =
+            dynamicTypeSize.isAccessibilitySize
+            ? [GridItem(.flexible())]
+            : [GridItem(.adaptive(minimum: 140), spacing: 12)]
+        return LazyVGrid(columns: columns, spacing: 12) {
             ForEach(summary.stats) { stat in
                 StatCell(stat: stat)
             }

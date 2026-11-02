@@ -47,12 +47,15 @@ struct SearchView: View {
     private var loadMoreFooter: some View {
         switch searchModel.state {
         case .loaded(let results) where results.nextPage != nil:
-            Button("さらに読み込む") {
+            Button {
                 Task {
                     await searchModel.loadMore()
                 }
+            } label: {
+                // ヒット領域はラベルの大きさで決まるので、ラベル側で 44pt 以上にする
+                Text("さらに読み込む")
+                    .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .frame(maxWidth: .infinity, minHeight: 44)
             .padding(.vertical, 8)
         case .loadingMore:
             ProgressView()
@@ -63,12 +66,14 @@ struct SearchView: View {
                 Text(error.localizedDescription)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                Button("再試行") {
+                Button {
                     Task {
                         await searchModel.loadMore()
                     }
+                } label: {
+                    Text("再試行")
+                        .frame(minHeight: 44)
                 }
-                .frame(minHeight: 44)
             }
             .frame(maxWidth: .infinity)
             .padding(16)
