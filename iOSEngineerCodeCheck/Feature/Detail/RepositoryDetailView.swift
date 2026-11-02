@@ -12,7 +12,7 @@ struct RepositoryDetailView: View {
     let repository: Repository
 
     private var summary: RepositorySummary {
-        RepositorySummary(repository, isBookmarked: bookmarkStore.isBookmarked(repository), locale: locale)
+        RepositorySummary(repository, isBookmarked: bookmarkStore.isBookmarked(repository), locale: locale, now: .now)
     }
 
     var body: some View {

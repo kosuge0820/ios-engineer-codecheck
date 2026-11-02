@@ -26,7 +26,8 @@ struct RepositoryListView<Footer: View>: View {
                         summary: RepositorySummary(
                             repository,
                             isBookmarked: showsBookmarkState && bookmarkStore.isBookmarked(repository),
-                            locale: locale
+                            locale: locale,
+                            now: .now
                         )
                     )
                 }
