@@ -1,5 +1,5 @@
 #!/bin/bash
-# xcresult からテスト結果の要約（合計 / 成功 / 失敗 / スキップと失敗テストの位置・メッセージ）を出す。
+# xcresult からテスト結果の要約（合計 / 成功 / 失敗 / スキップ、失敗テストの位置・メッセージ、ライン カバレッジ）を出す。
 #
 # 使い方: scripts/summarize-xcresult.sh build/test.xcresult
 # - 標準出力に人が読む要約を出す
@@ -19,14 +19,33 @@ fi
 
 summary_json="$(xcrun xcresulttool get test-results summary --path "$result_bundle")"
 tests_json="$(xcrun xcresulttool get test-results tests --path "$result_bundle")"
+# カバレッジはテストプランで有効な場合だけ入っている。無ければ空文字にして要約側で「取得できず」と出す
+coverage_json="$(xcrun xccov view --report --json "$result_bundle" 2>/dev/null || true)"
 
-SUMMARY_JSON="$summary_json" TESTS_JSON="$tests_json" RESULT_BUNDLE="$result_bundle" python3 -I - <<'PY'
+SUMMARY_JSON="$summary_json" TESTS_JSON="$tests_json" COVERAGE_JSON="$coverage_json" RESULT_BUNDLE="$result_bundle" python3 -I - <<'PY'
 import json
 import os
 
 summary = json.loads(os.environ["SUMMARY_JSON"])
 tests = json.loads(os.environ["TESTS_JSON"])
 bundle = os.environ["RESULT_BUNDLE"]
+
+# アプリターゲットのライン カバレッジ（参考値。閾値は設けない）
+coverage_line = "カバレッジ: 取得できず（テストプランで無効か、xccov が失敗）"
+coverage_md = coverage_line
+try:
+    coverage = json.loads(os.environ.get("COVERAGE_JSON") or "null")
+except json.JSONDecodeError:
+    coverage = None
+if isinstance(coverage, dict):
+    app_targets = [t for t in coverage.get("targets", []) if t.get("name", "").endswith(".app")]
+    target = app_targets[0] if app_targets else coverage
+    name = target.get("name", "全体")
+    ratio = target.get("lineCoverage", 0.0)
+    covered = target.get("coveredLines", 0)
+    executable = target.get("executableLines", 0)
+    coverage_line = f"ライン カバレッジ: {ratio:.1%}（{name}、{covered}/{executable} 行）"
+    coverage_md = f"ライン カバレッジ: **{ratio:.1%}**（`{name}`、{covered}/{executable} 行）"
 
 result = summary.get("result", "unknown")
 total = summary.get("totalTestCount", 0)
@@ -71,6 +90,7 @@ def short_path(path):
 lines = []
 lines.append(f"テスト結果: {result}  合計 {total} / 成功 {passed} / 失敗 {failed} / スキップ {skipped}"
              + (f" / 期待どおりの失敗 {expected_failures}" if expected_failures else ""))
+lines.append(coverage_line)
 lines.append(f"xcresult: {bundle}（Xcode で開くか `xcrun xcresulttool get test-results tests --path {bundle}`）")
 if failures:
     lines.append("")
@@ -92,6 +112,7 @@ if step_summary:
         out.write(f"## {icon} テスト結果: {result}\n\n")
         out.write("| 合計 | 成功 | 失敗 | スキップ |\n| --- | --- | --- | --- |\n")
         out.write(f"| {total} | {passed} | {failed} | {skipped} |\n\n")
+        out.write(coverage_md + "\n\n")
         if total == 0:
             out.write("テストが 1 件も実行されていない。`-only-testing` の指定やテストプランの対象を確認する。\n\n")
         if failures:
