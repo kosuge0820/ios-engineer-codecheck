@@ -119,6 +119,49 @@ final class SearchModel {
     }
 
     /// 進行中の検索をキャンセルし、結果を捨てて初期状態に戻す。
+    /// 表示中の結果の続き（次のページ）を読み込む。
+    ///
+    /// 進行中の通信があるとき、続きが無いとき、結果を表示していないときは何もしない。
+    /// 追加読み込みは同じ検索セッションなので世代は進めない。失敗しても表示中の結果は保ち、再度呼べば同じページを再要求する。
+    func loadMore() async {
+        switch state {
+        case .loaded(let results), .loadMoreFailed(let results, _):
+            guard searchTask == nil, let page = results.nextPage else { return }
+            await loadPage(page, appendingTo: results)
+        case .idle, .loading, .loadingMore, .empty, .failed:
+            return
+        }
+    }
+
+    private func loadPage(_ page: Int, appendingTo results: SearchResults) async {
+        let current = generation
+        state = .loadingMore(results)
+
+        let task = Task { [searcher] () -> Result<SearchResponse, GitHubSearchError> in
+            do throws(GitHubSearchError) {
+                return .success(try await searcher.search(SearchRequest(query: results.query, page: page)))
+            } catch {
+                return .failure(error)
+            }
+        }
+        searchTask = task
+        let outcome = await task.value
+
+        // 世代が進んでいれば別の検索セッション。状態が変わっていれば reset 等で捨てられている
+        guard current == generation, case .loadingMore(let shown) = state else {
+            Log.search.debug("世代 \(current) のページ \(page) の応答を破棄（現在 \(self.generation)）")
+            return
+        }
+        searchTask = nil
+        switch outcome {
+        case .success(let response):
+            state = .loaded(shown.appending(response, page: page))
+        case .failure(let error):
+            Log.search.error("ページ \(page) の追加読み込みに失敗: \(String(describing: error), privacy: .public)")
+            state = .loadMoreFailed(shown, error)
+        }
+    }
+
     func reset() {
         _ = beginGeneration()
         state = .idle
