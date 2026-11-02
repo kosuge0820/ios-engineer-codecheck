@@ -1,0 +1,34 @@
+{
+  "configurations" : [
+    {
+      "id" : "6C1E2B9A-5D0F-4F0E-9A3B-1D2E3F4A5B01",
+      "name" : "Unit",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+        {
+          "containerPath" : "container:iOSEngineerCodeCheck.xcodeproj",
+          "identifier" : "BFD945DA244DC5E80012785A",
+          "name" : "iOSEngineerCodeCheck"
+        }
+      ]
+    },
+    "testExecutionOrdering" : "random"
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:iOSEngineerCodeCheck.xcodeproj",
+        "identifier" : "BFD945F0244DC5EB0012785A",
+        "name" : "iOSEngineerCodeCheckTests"
+      }
+    }
+  ],
+  "version" : 1
+}

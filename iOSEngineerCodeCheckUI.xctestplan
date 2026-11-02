@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "6C1E2B9A-5D0F-4F0E-9A3B-1D2E3F4A5B02",
+      "name" : "UI",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:iOSEngineerCodeCheck.xcodeproj",
+        "identifier" : "BFD945FB244DC5EB0012785A",
+        "name" : "iOSEngineerCodeCheckUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
