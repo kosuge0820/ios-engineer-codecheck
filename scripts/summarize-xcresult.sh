@@ -4,7 +4,8 @@
 # 使い方: scripts/summarize-xcresult.sh build/test.xcresult
 # - 標準出力に人が読む要約を出す
 # - 環境変数 GITHUB_STEP_SUMMARY があれば、同じ内容を Markdown で追記する（GitHub Actions の Summary タブ）
-# - 終了コード: 失敗テストが 1 件以上あれば 1、xcresult が無ければ 2、それ以外は 0
+# - 終了コード: 結果が Passed 以外（失敗テストあり、ランナーのクラッシュ等）なら 1、xcresult が無ければ 2、
+#   テストが 1 件も実行されていなければ 3（-only-testing の指定ミスやテストプランの誤りを緑にしない）、それ以外は 0
 #
 # 依存: xcrun xcresulttool（Xcode 同梱）と python3（macOS 同梱）
 set -euo pipefail
@@ -79,15 +80,20 @@ if failures:
         lines.append(f"- {failure['test']}  @ {where}")
         for message_line in failure["message"].splitlines():
             lines.append(f"    {message_line}")
+if total == 0:
+    lines.append("")
+    lines.append("テストが 1 件も実行されていない。-only-testing の指定やテストプランの対象を確認する")
 print("\n".join(lines))
 
 step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
 if step_summary:
     with open(step_summary, "a", encoding="utf-8") as out:
-        icon = "✅" if result == "Passed" else "❌"
+        icon = "✅" if result == "Passed" and total > 0 else "❌"
         out.write(f"## {icon} テスト結果: {result}\n\n")
         out.write("| 合計 | 成功 | 失敗 | スキップ |\n| --- | --- | --- | --- |\n")
         out.write(f"| {total} | {passed} | {failed} | {skipped} |\n\n")
+        if total == 0:
+            out.write("テストが 1 件も実行されていない。`-only-testing` の指定やテストプランの対象を確認する。\n\n")
         if failures:
             out.write("### 失敗したテスト\n\n| テスト | 位置 | メッセージ |\n| --- | --- | --- |\n")
             for failure in failures:
@@ -97,5 +103,7 @@ if step_summary:
             out.write("\n")
         out.write(f"xcresult はアーティファクト `test-results` に含まれる（`{os.path.basename(bundle)}`）。\n")
 
-raise SystemExit(1 if failed else 0)
+if total == 0:
+    raise SystemExit(3)
+raise SystemExit(0 if result == "Passed" and failed == 0 else 1)
 PY

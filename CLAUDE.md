@@ -47,7 +47,7 @@ Xcode で開く場合は共有スキーム `iOSEngineerCodeCheck` を使う。�
 ## 成否の判断と診断
 
 - 成否は終了コードで判断する。`make build` / `make test` / `make lint` はいずれも失敗時に非 0 で終わる
-- `make test` は結果に関わらず `scripts/summarize-xcresult.sh` を実行し、「合計 / 成功 / 失敗 / スキップ」と、失敗したテストの名前・`ファイル:行`・メッセージを標準出力に出す。`GITHUB_STEP_SUMMARY` が設定されていれば同じ内容を Markdown でも書き出す（CI の Summary タブ）
+- `make test` と `make test-repeat` は結果に関わらず `scripts/summarize-xcresult.sh` を実行し、「合計 / 成功 / 失敗 / スキップ」と、失敗したテストの名前・`ファイル:行`・メッセージを標準出力に出す。結果が Passed 以外（ランナーのクラッシュ等で失敗件数が 0 でも）や、テストが 1 件も実行されなかった場合（`-only-testing` の対象が消えた等）も非 0 で終わる。`GITHUB_STEP_SUMMARY` が設定されていれば同じ内容を Markdown でも書き出す（CI の Summary タブ）
 - 詳しく調べるときは `build/test.xcresult` を Xcode で開くか、次を実行する
 
   ```bash

@@ -60,9 +60,13 @@ test: check-tools ## 単体テスト（テストプラン iOSEngineerCodeCheck�
 
 test-repeat: check-tools ## 非同期競合の flaky 検出: SearchModelTests を REPEAT_COUNT 回（既定 20）繰り返す
 	rm -rf $(REPEAT_RESULT_BUNDLE)
-	$(PIPEFAIL) $(XCODEBUILD) test -testPlan $(TEST_PLAN) -only-testing:$(REPEAT_TESTS) \
+	$(PIPEFAIL) status=0; summary_status=0; \
+	$(XCODEBUILD) test -testPlan $(TEST_PLAN) -only-testing:$(REPEAT_TESTS) \
 		-test-iterations $(REPEAT_COUNT) -run-tests-until-failure \
-		-resultBundlePath $(REPEAT_RESULT_BUNDLE) $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/test-repeat.log
+		-resultBundlePath $(REPEAT_RESULT_BUNDLE) $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/test-repeat.log || status=$$?; \
+	./scripts/summarize-xcresult.sh $(REPEAT_RESULT_BUNDLE) || summary_status=$$?; \
+	[ $$status -ne 0 ] || status=$$summary_status; \
+	exit $$status
 
 ui-test: check-tools ## UI テスト（テストプラン iOSEngineerCodeCheckUI。make test では走らない）
 	rm -rf $(BUILD_DIR)/ui-test.xcresult
