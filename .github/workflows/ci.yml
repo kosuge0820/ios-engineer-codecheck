@@ -1,0 +1,59 @@
+name: CI
+
+# ローカルと同じ Makefile のターゲットを実行する。実 API には触れない（テストはスタブ）ので秘密情報は不要。
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    # Xcode 27 系は macos-latest（macOS 26 イメージ、Xcode 26.x）には無く、xcode-27 イメージ（公開プレビュー）にだけある。
+    # https://github.com/actions/runner-images （Available Images の xcode-27 / xcode-27-xlarge）
+    # macos-latest に戻すと Xcode 26 になり iOS 27 の SDK が無いためビルドできない。
+    runs-on: xcode-27
+    timeout-minutes: 40
+    env:
+      # ローカル（Xcode 27.2）と合わせる。イメージ側の 27.2 は Release Candidate ビルド。
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app
+      # CI 側のシミュレータ（iPhone 17 / iOS 27.0）。Makefile の既定 OS=latest で解決される
+      SIMULATOR_NAME: iPhone 17
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Record toolchain (診断用)
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcrun swift-format --version
+
+      - name: Lint
+        run: make lint
+
+      - name: Build
+        run: make build
+
+      - name: Unit tests
+        run: make test
+
+      - name: Repeat concurrency tests (flaky 検出)
+        run: make test-repeat
+
+      - name: Upload test results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            build/*.xcresult
+            build/*.log
+          if-no-files-found: ignore
+          retention-days: 14
