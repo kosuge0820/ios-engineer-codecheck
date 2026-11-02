@@ -84,7 +84,28 @@ struct GitHubSearchClientTests {
         _ = try await client.search(SearchRequest(query: "a&b", page: 1))
 
         let requested = try #require(StubURLProtocol.requestedURLs.last)
-        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=a%26b")
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=a%26b&page=1&per_page=30")
+    }
+
+    @Test("ページ番号と 1 ページの件数（既定 30）をクエリに付ける")
+    func sendsPageAndPerPageQueryItems() async throws {
+        StubURLProtocol.register(query: "paged", status: 200, body: try Fixture.data("search-empty"))
+
+        _ = try await client.search(SearchRequest(query: "paged", page: 3))
+
+        let requested = try #require(StubURLProtocol.requestedURLs.last)
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=paged&page=3&per_page=30")
+    }
+
+    @Test("1 ページの件数は初期化時に変えられる")
+    func perPageIsConfigurable() async throws {
+        let client = GitHubSearchClient(session: StubURLProtocol.makeSession(), perPage: 100)
+        StubURLProtocol.register(query: "wide", status: 200, body: try Fixture.data("search-empty"))
+
+        _ = try await client.search(SearchRequest(query: "wide", page: 1))
+
+        let requested = try #require(StubURLProtocol.requestedURLs.last)
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=wide&page=1&per_page=100")
     }
 
     @Test("クエリ中の + はサーバで空白と解釈されないよう %2B に符号化される")
@@ -94,7 +115,7 @@ struct GitHubSearchClientTests {
         _ = try await client.search(SearchRequest(query: "c++", page: 1))
 
         let requested = try #require(StubURLProtocol.requestedURLs.last)
-        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=c%2B%2B")
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=c%2B%2B&page=1&per_page=30")
     }
 
     @Test("空白と = を含むクエリも区切りとして漏れずに送られる")
@@ -104,6 +125,7 @@ struct GitHubSearchClientTests {
         _ = try await client.search(SearchRequest(query: "language:swift a=b", page: 1))
 
         let requested = try #require(StubURLProtocol.requestedURLs.last)
-        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=language:swift%20a%3Db")
+        let expected = "https://api.github.com/search/repositories?q=language:swift%20a%3Db&page=1&per_page=30"
+        #expect(requested.absoluteString == expected)
     }
 }
