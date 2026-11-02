@@ -4,9 +4,9 @@ import Testing
 
 @Suite("Repository / SearchResponse のデコード")
 struct RepositoryDecodingTests {
-    private let decoder = JSONDecoder()
+    private let decoder = JSONDecoder.gitHubAPI()
 
-    @Test("成功応答から id・名前・言語・件数・アバター URL を読める")
+    @Test("成功応答から id・名前・言語・件数・アバター URL・説明・URL・最終更新・アーカイブ状態を読める")
     func decodesSuccessResponse() throws {
         let response = try decoder.decode(SearchResponse.self, from: Fixture.data("search-success"))
 
@@ -22,14 +22,38 @@ struct RepositoryDecodingTests {
         #expect(first.forksCount == 10884)
         #expect(first.openIssuesCount == 9528)
         #expect(first.owner.avatarURL.absoluteString == "https://avatars.githubusercontent.com/u/42816656?v=4")
+        #expect(first.description == "The Swift Programming Language")
+        #expect(first.htmlURL?.absoluteString == "https://github.com/swiftlang/swift")
+        #expect(
+            first.pushedAt == Date(timeIntervalSince1970: 1_793_628_691), "pushed_at は ISO 8601（2026-11-02T14:11:31Z）"
+        )
+        #expect(first.isArchived == false)
     }
 
-    @Test("language が null なら nil になる")
+    @Test("language と pushed_at が null なら nil になる")
     func languageNullBecomesNil() throws {
         let response = try decoder.decode(SearchResponse.self, from: Fixture.data("search-language-null"))
         let item = try #require(response.items.first)
         #expect(item.language == nil)
+        #expect(item.pushedAt == nil)
         #expect(item.fullName == "example/design-docs")
+    }
+
+    @Test("アーカイブ済みのリポジトリは archived が true で、最終更新はその時点のまま")
+    func decodesArchivedRepository() throws {
+        let response = try decoder.decode(SearchResponse.self, from: Fixture.data("search-archived"))
+        let item = try #require(response.items.first)
+        #expect(item.fullName == "tensorflow/swift")
+        #expect(item.isArchived)
+        #expect(item.pushedAt == Date(timeIntervalSince1970: 1_642_017_330), "2022-01-12T19:55:30Z")
+    }
+
+    @Test("pushed_at が ISO 8601 でなければデコードに失敗する（壊れた応答を黙って通さない）")
+    func invalidPushedAtThrows() throws {
+        let data = try Fixture.data("search-invalid-date")
+        #expect(throws: DecodingError.self) {
+            try decoder.decode(SearchResponse.self, from: data)
+        }
     }
 
     @Test("0 件応答は items が空の SearchResponse になる")

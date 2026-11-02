@@ -11,6 +11,8 @@
       "description": "Documentation only repository",
       "fork": false,
       "language": null,
+      "archived": false,
+      "pushed_at": null,
       "stargazers_count": 12,
       "watchers_count": 12,
       "forks_count": 3,

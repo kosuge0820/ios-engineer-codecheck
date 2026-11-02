@@ -17,11 +17,14 @@ struct UserDefaultsBookmarkStorageTests {
         #expect(try storage.load().isEmpty)
     }
 
-    @Test("save した内容を bookmarks.v1 から load できる")
+    @Test("save した内容を bookmarks.v1 から load できる（説明・URL・最終更新・アーカイブ状態も往復する）")
     func roundTrip() throws {
         let repositories = [
-            Repository.fixture(id: 1, fullName: "a/one", language: nil),
-            Repository.fixture(id: 2, fullName: "b/two", language: "Swift"),
+            Repository.fixture(id: 1, fullName: "a/one", language: nil, description: nil, pushedAt: nil),
+            Repository.fixture(
+                id: 2, fullName: "b/two", language: "Swift", description: "Two", pushedAt: Repository.fixturePushedAt,
+                isArchived: true
+            ),
         ]
 
         try storage.save(repositories)
@@ -30,9 +33,10 @@ struct UserDefaultsBookmarkStorageTests {
         #expect(try storage.load() == repositories)
     }
 
-    @Test("固定した v1 フィクスチャを読める（保存形式を変えたらキーを上げる）")
+    @Test("固定した v1 フィクスチャ（説明等の項目が無い出荷済み形式）を読める。項目を減らす・型を変えるときはキーを上げる")
     func decodesFrozenV1Fixture() throws {
-        // Fixtures/bookmarks-v1.json は出荷済みの bookmarks.v1 の形式を固定したもの（save() の出力と同じ内容）。
+        // Fixtures/bookmarks-v1.json は最初に出荷した bookmarks.v1 の形式を固定したもの（当時の save() の出力と同じ内容）。
+        // 後から足した optional の項目（description / htmlURL / pushedAt / isArchived）は無くても読める。
         // このテストが落ちたら BookmarkRecordV1 を直すのではなく、キーを bookmarks.v2 に上げて移行処理とテストを足す。
         temporary.defaults.set(try Fixture.data("bookmarks-v1"), forKey: UserDefaultsBookmarkStorage.currentKey)
 
@@ -49,7 +53,11 @@ struct UserDefaultsBookmarkStorageTests {
                 openIssuesCount: 9528,
                 owner: Repository.Owner(
                     avatarURL: try #require(URL(string: "https://avatars.githubusercontent.com/u/42816656?v=4"))
-                )
+                ),
+                description: nil,
+                htmlURL: nil,
+                pushedAt: nil,
+                isArchived: false
             ),
             Repository(
                 id: 123_456_789,
@@ -61,19 +69,85 @@ struct UserDefaultsBookmarkStorageTests {
                 openIssuesCount: 1,
                 owner: Repository.Owner(
                     avatarURL: try #require(URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
-                )
+                ),
+                description: nil,
+                htmlURL: nil,
+                pushedAt: nil,
+                isArchived: false
             ),
         ]
         #expect(loaded == expected)
         #expect(loaded.allSatisfy { !$0.hasProvisionalID }, "v1 は GitHub の id を持つ")
 
-        // encode 方向も固定する: 現行の save() が書く JSON はフィクスチャと同じ内容（language が nil ならキー省略）
+        // encode 方向も固定する: 読んだ値を save() し直しても、出荷済みの項目は値・キーとも同じで、
+        // 増えるキーは後から足した項目だけ（nil の項目はキー省略。isArchived は Repository では false になるので書かれる）
+        try storage.save(expected)
+        let saved = try #require(temporary.defaults.data(forKey: UserDefaultsBookmarkStorage.currentKey))
+        let savedRecords = try #require(try JSONSerialization.jsonObject(with: saved) as? [[String: AnyHashable]])
+        let fixtureRecords = try #require(
+            try JSONSerialization.jsonObject(with: Fixture.data("bookmarks-v1")) as? [[String: AnyHashable]]
+        )
+        #expect(savedRecords.count == fixtureRecords.count)
+        for (savedRecord, fixtureRecord) in zip(savedRecords, fixtureRecords) {
+            let addedKeys = Set(savedRecord.keys).subtracting(fixtureRecord.keys)
+            #expect(addedKeys.isSubset(of: ["isArchived"]), "後から足した項目以外のキーが増えた。bookmarks.v2 にキーを上げて移行を書く")
+            let shared = savedRecord.filter { fixtureRecord.keys.contains($0.key) }
+            #expect(shared == fixtureRecord, "出荷済みの項目の値や名前が変わった。bookmarks.v2 にキーを上げて移行を書く")
+        }
+    }
+
+    @Test("固定した v1 フィクスチャ（説明等の項目込み）を読め、save() の出力が一致する")
+    func decodesFrozenV1FixtureWithDetails() throws {
+        // Fixtures/bookmarks-v1-with-details.json は optional の項目を足した後の save() の出力を固定したもの。
+        temporary.defaults.set(
+            try Fixture.data("bookmarks-v1-with-details"), forKey: UserDefaultsBookmarkStorage.currentKey
+        )
+
+        let loaded = try storage.load()
+
+        let expected = [
+            Repository(
+                id: 44_838_949,
+                fullName: "swiftlang/swift",
+                language: "Swift",
+                stargazersCount: 70530,
+                watchersCount: 70530,
+                forksCount: 10884,
+                openIssuesCount: 9528,
+                owner: Repository.Owner(
+                    avatarURL: try #require(URL(string: "https://avatars.githubusercontent.com/u/42816656?v=4"))
+                ),
+                description: "The Swift Programming Language",
+                htmlURL: URL(string: "https://github.com/swiftlang/swift"),
+                pushedAt: Date(timeIntervalSince1970: 1_793_628_691),
+                isArchived: false
+            ),
+            Repository(
+                id: 130_902_948,
+                fullName: "tensorflow/swift",
+                language: "Jupyter Notebook",
+                stargazersCount: 6114,
+                watchersCount: 6114,
+                forksCount: 610,
+                openIssuesCount: 37,
+                owner: Repository.Owner(
+                    avatarURL: try #require(URL(string: "https://avatars.githubusercontent.com/u/15658638?v=4"))
+                ),
+                description: "Swift for TensorFlow",
+                htmlURL: URL(string: "https://github.com/tensorflow/swift"),
+                pushedAt: Date(timeIntervalSince1970: 1_642_017_330),
+                isArchived: true
+            ),
+        ]
+        #expect(loaded == expected)
+
         try storage.save(expected)
         let saved = try #require(temporary.defaults.data(forKey: UserDefaultsBookmarkStorage.currentKey))
         let savedObject = try JSONSerialization.jsonObject(with: saved) as? NSArray
-        let fixtureObject = try JSONSerialization.jsonObject(with: Fixture.data("bookmarks-v1")) as? NSArray
+        let fixtureData = try Fixture.data("bookmarks-v1-with-details")
+        let fixtureObject = try JSONSerialization.jsonObject(with: fixtureData) as? NSArray
         #expect(savedObject != nil)
-        #expect(savedObject == fixtureObject, "save() の出力が変わった。bookmarks.v2 にキーを上げて移行を書く")
+        #expect(savedObject == fixtureObject, "save() の出力が変わった（日付は ISO 8601 で保存する）")
     }
 
     @Test("旧キー data だけがある場合は読み込んで v1 に移し、旧キーを消す")
@@ -92,6 +166,10 @@ struct UserDefaultsBookmarkStorageTests {
         let allProvisional = migrated.allSatisfy { $0.hasProvisionalID }
         #expect(allProvisional, "旧データは GitHub の id を持たないので暫定 id になる")
         #expect(migrated[0].id == Repository.provisionalID(fullName: "swiftlang/swift"))
+        #expect(migrated[0].description == nil, "旧形式に無い項目は補完しない")
+        #expect(migrated[0].htmlURL == nil)
+        #expect(migrated[0].pushedAt == nil)
+        #expect(!migrated[0].isArchived)
 
         #expect(temporary.defaults.data(forKey: UserDefaultsBookmarkStorage.legacyKey) == nil, "移行後は旧キーを消す")
         #expect(temporary.defaults.data(forKey: UserDefaultsBookmarkStorage.currentKey) != nil)

@@ -18,6 +18,14 @@ struct Repository: Decodable, Hashable, Identifiable, Sendable {
     let forksCount: Int
     let openIssuesCount: Int
     let owner: Owner
+    /// リポジトリの説明。API では null のことがある
+    let description: String?
+    /// GitHub 上のページ。API では必ずあるが、説明等を持たない旧い保存データから復元した項目には無い（補完はしない）
+    let htmlURL: URL?
+    /// 最後に push された日時（ISO 8601）。空のリポジトリでは null
+    let pushedAt: Date?
+    /// アーカイブ済み（読み取り専用になった）か。旧い保存データから復元した項目は不明なので false
+    let isArchived: Bool
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -28,6 +36,20 @@ struct Repository: Decodable, Hashable, Identifiable, Sendable {
         case forksCount = "forks_count"
         case openIssuesCount = "open_issues_count"
         case owner
+        case description
+        case htmlURL = "html_url"
+        case pushedAt = "pushed_at"
+        case isArchived = "archived"
+    }
+}
+
+extension JSONDecoder {
+    /// GitHub API の応答用。日付（`pushed_at` 等）は ISO 8601（例 `2026-11-02T14:11:31Z`）。
+    /// `JSONDecoder` は `Sendable` でないため、共有インスタンスではなく毎回作る。
+    static func gitHubAPI() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
     }
 }
 

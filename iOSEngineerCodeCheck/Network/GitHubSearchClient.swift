@@ -38,7 +38,7 @@ struct GitHubSearchClient: RepositorySearching {
         switch http.statusCode {
         case 200:
             do {
-                return try JSONDecoder().decode(SearchResponse.self, from: data)
+                return try JSONDecoder.gitHubAPI().decode(SearchResponse.self, from: data)
             } catch {
                 Log.network.error("検索応答のデコードに失敗: \(String(describing: error), privacy: .public)")
                 throw .invalidResponse(String(describing: error))

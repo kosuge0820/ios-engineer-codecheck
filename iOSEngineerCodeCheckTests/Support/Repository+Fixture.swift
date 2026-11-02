@@ -2,7 +2,11 @@ import Foundation
 @testable import iOSEngineerCodeCheck
 
 extension Repository {
+    /// `fixture` の既定の最終更新日時（2023-11-14T22:13:20Z）。相対表記のテストは `now` をこれに対して決める。
+    static let fixturePushedAt = Date(timeIntervalSince1970: 1_700_000_000)
+
     /// テスト用の値。`id` と `fullName` だけ変えれば同一性の検証に足りる。
+    /// `htmlURL` を省略すると `https://github.com/<fullName>` になる（API の値と同じ規則）。
     static func fixture(
         id: Int = 1,
         fullName: String = "octocat/hello-world",
@@ -10,12 +14,20 @@ extension Repository {
         stargazersCount: Int = 10,
         watchersCount: Int = 10,
         forksCount: Int = 2,
-        openIssuesCount: Int = 1
+        openIssuesCount: Int = 1,
+        description: String? = "A test repository",
+        htmlURL: URL? = nil,
+        pushedAt: Date? = fixturePushedAt,
+        isArchived: Bool = false
     ) -> Repository {
-        var components = URLComponents()
-        components.scheme = "https"
-        components.host = "avatars.example.com"
-        components.path = "/u/\(id)"
+        var avatar = URLComponents()
+        avatar.scheme = "https"
+        avatar.host = "avatars.example.com"
+        avatar.path = "/u/\(id)"
+        var page = URLComponents()
+        page.scheme = "https"
+        page.host = "github.com"
+        page.path = "/\(fullName)"
         return Repository(
             id: id,
             fullName: fullName,
@@ -24,7 +36,11 @@ extension Repository {
             watchersCount: watchersCount,
             forksCount: forksCount,
             openIssuesCount: openIssuesCount,
-            owner: Owner(avatarURL: components.url ?? URL(filePath: "/"))
+            owner: Owner(avatarURL: avatar.url ?? URL(filePath: "/")),
+            description: description,
+            htmlURL: htmlURL ?? page.url,
+            pushedAt: pushedAt,
+            isArchived: isArchived
         )
     }
 }

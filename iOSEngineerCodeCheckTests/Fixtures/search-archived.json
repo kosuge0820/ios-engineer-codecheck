@@ -1,0 +1,36 @@
+{
+  "total_count": 1,
+  "incomplete_results": false,
+  "items": [
+    {
+      "id": 130902948,
+      "node_id": "MDEwOlJlcG9zaXRvcnkxMzA5MDI5NDg=",
+      "name": "swift",
+      "full_name": "tensorflow/swift",
+      "private": false,
+      "html_url": "https://github.com/tensorflow/swift",
+      "description": "Swift for TensorFlow",
+      "fork": false,
+      "language": "Jupyter Notebook",
+      "stargazers_count": 6114,
+      "watchers_count": 6114,
+      "forks_count": 610,
+      "open_issues_count": 37,
+      "default_branch": "main",
+      "archived": true,
+      "pushed_at": "2022-01-12T19:55:30Z",
+      "topics": [
+        "differentiable-programming",
+        "machine-learning",
+        "tensorflow"
+      ],
+      "owner": {
+        "login": "tensorflow",
+        "id": 15658638,
+        "avatar_url": "https://avatars.githubusercontent.com/u/15658638?v=4",
+        "html_url": "https://github.com/tensorflow",
+        "type": "Organization"
+      }
+    }
+  ]
+}
