@@ -318,4 +318,156 @@ struct SearchModelTests {
 
         #expect(model.state.results?.items.map(\.id) == [1])
     }
+
+    // MARK: - 新しい検索との分離（完了条件 2）
+
+    @Test("追加読み込み中に新しい検索を始めると、古いページの応答は捨てられ新しい結果だけになる")
+    func newSearchDuringLoadMoreShowsOnlyNewResults() async {
+        let stub = StubRepositorySearcher()
+        await stub.hold()
+        let model = SearchModel(searcher: stub)
+        let oldItems = [Repository.fixture(id: 1, fullName: "old/one")]
+
+        model.query = "old"
+        let firstSearch = Task { await model.search() }
+        await stub.waitForCalls(1)
+        await stub.resume(call: 0, with: .success(.fixture(oldItems, totalCount: 50)))
+        await firstSearch.value
+
+        let loadingMore = Task { await model.loadMore() }
+        await stub.waitForCalls(2)
+        #expect(model.state == .loadingMore(.fixture(query: "old", items: oldItems, nextPage: 2)))
+
+        model.query = "new"
+        let secondSearch = Task { await model.search() }
+        await stub.waitForCalls(3)
+        #expect(model.state == .loading, "新しい検索を始めたら古い結果は表示しない")
+
+        await stub.resume(call: 1, with: .success(.fixture([.fixture(id: 2, fullName: "old/two")], totalCount: 50)))
+        await loadingMore.value
+        #expect(model.state == .loading, "古いセッションのページは反映しない")
+
+        let newItems = [Repository.fixture(id: 3, fullName: "new/three")]
+        await stub.resume(call: 2, with: .success(.fixture(newItems)))
+        await secondSearch.value
+        #expect(model.state == .loaded(.fixture(query: "new", items: newItems)))
+
+        let requests = await stub.receivedRequests
+        #expect(requests.map(\.query) == ["old", "old", "new"])
+        #expect(requests.map(\.page) == [1, 2, 1])
+    }
+
+    @Test("追加読み込み中に reset すると idle に戻り、その後に届いたページは捨てられる")
+    func resetDuringLoadMoreReturnsToIdleAndDropsResponse() async {
+        let stub = StubRepositorySearcher(outcomes: [.success(.fixture([.fixture(id: 1)], totalCount: 50))])
+        let model = SearchModel(searcher: stub)
+        model.query = "swift"
+        await model.search()
+        await stub.hold()
+
+        let loadingMore = Task { await model.loadMore() }
+        await stub.waitForCalls(2)
+        model.reset()
+        #expect(model.state == .idle)
+
+        await stub.resume(call: 1, with: .success(.fixture([.fixture(id: 2, fullName: "a/two")], totalCount: 50)))
+        await loadingMore.value
+        #expect(model.state == .idle, "捨てたセッションのページが表示されてはいけない")
+    }
+
+    // MARK: - 古い応答の無効化（完了条件 3）
+
+    @Test("古いセッションの追加ページが、新しい検索の結果より後に届いても上書きしない")
+    func staleLoadMoreResponseDoesNotOverwriteNewerSearch() async {
+        let stub = StubRepositorySearcher()
+        await stub.hold()
+        let model = SearchModel(searcher: stub)
+
+        model.query = "old"
+        let firstSearch = Task { await model.search() }
+        await stub.waitForCalls(1)
+        await stub.resume(call: 0, with: .success(.fixture([.fixture(id: 1, fullName: "old/one")], totalCount: 50)))
+        await firstSearch.value
+        let loadingMore = Task { await model.loadMore() }
+        await stub.waitForCalls(2)
+
+        model.query = "new"
+        let secondSearch = Task { await model.search() }
+        await stub.waitForCalls(3)
+        let newItems = [Repository.fixture(id: 3, fullName: "new/three")]
+        await stub.resume(call: 2, with: .success(.fixture(newItems)))
+        await secondSearch.value
+        #expect(model.state == .loaded(.fixture(query: "new", items: newItems)))
+
+        await stub.resume(call: 1, with: .success(.fixture([.fixture(id: 2, fullName: "old/two")], totalCount: 50)))
+        await loadingMore.value
+        #expect(model.state == .loaded(.fixture(query: "new", items: newItems)), "古いページで新しい結果を上書きしてはいけない")
+    }
+
+    @Test("古いセッションの追加ページが失敗で終わっても、新しい検索を失敗扱いにしない")
+    func staleLoadMoreFailureDoesNotMarkNewerSearchAsFailed() async {
+        let stub = StubRepositorySearcher()
+        await stub.hold()
+        let model = SearchModel(searcher: stub)
+
+        model.query = "old"
+        let firstSearch = Task { await model.search() }
+        await stub.waitForCalls(1)
+        await stub.resume(call: 0, with: .success(.fixture([.fixture(id: 1, fullName: "old/one")], totalCount: 50)))
+        await firstSearch.value
+        let loadingMore = Task { await model.loadMore() }
+        await stub.waitForCalls(2)
+
+        model.query = "new"
+        let secondSearch = Task { await model.search() }
+        await stub.waitForCalls(3)
+        let newItems = [Repository.fixture(id: 3, fullName: "new/three")]
+        await stub.resume(call: 2, with: .success(.fixture(newItems)))
+        await secondSearch.value
+
+        await stub.resume(call: 1, with: .failure(.rateLimited))
+        await loadingMore.value
+        #expect(model.state == .loaded(.fixture(query: "new", items: newItems)), "古いページの失敗で新しい結果を壊してはいけない")
+    }
+
+    // MARK: - 追加読み込みの失敗と再試行（完了条件 5）
+
+    @Test("追加読み込みに失敗しても、表示中の結果と次ページ番号を保ったままエラーを持つ")
+    func loadMoreFailureKeepsLoadedResults() async {
+        let items = [Repository.fixture(id: 1)]
+        let stub = StubRepositorySearcher(outcomes: [
+            .success(.fixture(items, totalCount: 50)),
+            .failure(.rateLimited),
+        ])
+        let model = SearchModel(searcher: stub)
+        model.query = "swift"
+        await model.search()
+
+        await model.loadMore()
+
+        #expect(model.state == .loadMoreFailed(.fixture(query: "swift", items: items, nextPage: 2), .rateLimited))
+    }
+
+    @Test("失敗後に再試行すると同じページを要求し、成功すれば追記される")
+    func retryAfterLoadMoreFailureRequestsSamePage() async {
+        let stub = StubRepositorySearcher(outcomes: [
+            .success(.fixture([.fixture(id: 1)], totalCount: 50)),
+            .failure(.network(URLError(.notConnectedToInternet))),
+            .success(.fixture([.fixture(id: 2, fullName: "a/two")], totalCount: 50)),
+        ])
+        let model = SearchModel(searcher: stub)
+        model.query = "swift"
+        await model.search()
+        await model.loadMore()
+        guard case .loadMoreFailed = model.state else {
+            Issue.record("再試行前は loadMoreFailed のはず: \(model.state)")
+            return
+        }
+
+        await model.loadMore()
+
+        #expect(await stub.receivedRequests.map(\.page) == [1, 2, 2])
+        #expect(model.state.results?.items.map(\.id) == [1, 2])
+        #expect(model.state.results?.nextPage == 3)
+    }
 }
