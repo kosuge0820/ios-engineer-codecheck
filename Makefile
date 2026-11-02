@@ -50,27 +50,25 @@ check-tools:
 build: check-tools ## アプリと単体・UI テストターゲットをビルド（Swift 警告はプロジェクト設定でエラー扱い）。ログ: build/build.log
 	$(PIPEFAIL) $(XCODEBUILD) build-for-testing -testPlan $(TEST_PLAN) -testPlan $(UI_TEST_PLAN) $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/build.log
 
-test: check-tools ## 単体テスト（テストプラン iOSEngineerCodeCheck）。結果: build/test.xcresult、ログ: build/test.log
-	rm -rf $(RESULT_BUNDLE)
+# xcodebuild test を実行し、終了コードを保ったまま要約を出す共通レシピ
+# 引数: 1 = xcresult の出力先, 2 = ログファイル名, 3 = xcodebuild test への追加引数
+define run-tests
 	$(PIPEFAIL) status=0; summary_status=0; \
-	$(XCODEBUILD) test -testPlan $(TEST_PLAN) -resultBundlePath $(RESULT_BUNDLE) $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/test.log || status=$$?; \
-	./scripts/summarize-xcresult.sh $(RESULT_BUNDLE) || summary_status=$$?; \
+	rm -rf $(1); \
+	$(XCODEBUILD) test $(3) -resultBundlePath $(1) $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/$(2) || status=$$?; \
+	./scripts/summarize-xcresult.sh $(1) || summary_status=$$?; \
 	[ $$status -ne 0 ] || status=$$summary_status; \
 	exit $$status
+endef
+
+test: check-tools ## 単体テスト（テストプラン iOSEngineerCodeCheck）。結果: build/test.xcresult、ログ: build/test.log
+	$(call run-tests,$(RESULT_BUNDLE),test.log,-testPlan $(TEST_PLAN))
 
 test-repeat: check-tools ## 非同期競合の flaky 検出: SearchModelTests を REPEAT_COUNT 回（既定 20）繰り返す
-	rm -rf $(REPEAT_RESULT_BUNDLE)
-	$(PIPEFAIL) status=0; summary_status=0; \
-	$(XCODEBUILD) test -testPlan $(TEST_PLAN) -only-testing:$(REPEAT_TESTS) \
-		-test-iterations $(REPEAT_COUNT) -run-tests-until-failure \
-		-resultBundlePath $(REPEAT_RESULT_BUNDLE) $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/test-repeat.log || status=$$?; \
-	./scripts/summarize-xcresult.sh $(REPEAT_RESULT_BUNDLE) || summary_status=$$?; \
-	[ $$status -ne 0 ] || status=$$summary_status; \
-	exit $$status
+	$(call run-tests,$(REPEAT_RESULT_BUNDLE),test-repeat.log,-testPlan $(TEST_PLAN) -only-testing:$(REPEAT_TESTS) -test-iterations $(REPEAT_COUNT) -run-tests-until-failure)
 
-ui-test: check-tools ## UI テスト（テストプラン iOSEngineerCodeCheckUI。make test では走らない）
-	rm -rf $(BUILD_DIR)/ui-test.xcresult
-	$(PIPEFAIL) $(XCODEBUILD) test -testPlan $(UI_TEST_PLAN) -resultBundlePath $(BUILD_DIR)/ui-test.xcresult $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/ui-test.log
+ui-test: check-tools ## UI テスト（テストプラン iOSEngineerCodeCheckUI。make test では走らない。テストが 0 件なら失敗）
+	$(call run-tests,$(BUILD_DIR)/ui-test.xcresult,ui-test.log,-testPlan $(UI_TEST_PLAN))
 
 lint: ## 静的解析（Xcode 同梱の swift-format、設定は .swift-format）
 	xcrun swift-format lint --strict --recursive $(SOURCE_DIRS)

@@ -126,7 +126,7 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 ### UI テストを書くとき
 
 - UI テストターゲットは `iOSEngineerCodeCheckUI.xctestplan` にだけ入っていて、`make test` と CI では実行しない（起動コストと flaky を避けるため）
-- 追加した UI テストは `make ui-test` で実行する。CI で回したい場合は `.github/workflows/ci.yml` に `make ui-test` のステップを足す
+- 追加した UI テストは `make ui-test` で実行する（`make test` と同じ要約と終了コードの扱い。UI テストが 0 件のうちは「1 件も実行されていない」として非 0 で終わる）。CI で回したい場合は `.github/workflows/ci.yml` に `make ui-test` のステップを足す
 
 ## CI
 
