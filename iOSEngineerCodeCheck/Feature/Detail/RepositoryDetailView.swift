@@ -31,8 +31,8 @@ struct RepositoryDetailView: View {
         .navigationTitle(summary.title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // 旧データ由来の暫定 id を、検索結果から開いた実 id で置き換える（未登録・実 id 同士なら何もしない）
-            bookmarkStore.resolveProvisionalID(with: repository)
+            // 検索結果から開いたなら、保存済みの値（旧データの暫定 id や説明なしを含む）を最新の値に置き換える
+            bookmarkStore.refresh(with: repository)
         }
     }
 
