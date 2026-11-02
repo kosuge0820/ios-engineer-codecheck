@@ -47,8 +47,8 @@ check-tools:
 	@command -v xcodebuild >/dev/null || { echo "xcodebuild が見つかりません。Xcode をインストールし xcode-select で選択してください" >&2; exit 1; }
 	@mkdir -p $(BUILD_DIR)
 
-build: check-tools ## シミュレータ向けビルド（Swift 警告はプロジェクト設定でエラー扱い）。ログ: build/build.log
-	$(PIPEFAIL) $(XCODEBUILD) build $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/build.log
+build: check-tools ## アプリと単体・UI テストターゲットをビルド（Swift 警告はプロジェクト設定でエラー扱い）。ログ: build/build.log
+	$(PIPEFAIL) $(XCODEBUILD) build-for-testing -testPlan $(TEST_PLAN) -testPlan $(UI_TEST_PLAN) $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/build.log
 
 test: check-tools ## 単体テスト（テストプラン iOSEngineerCodeCheck）。結果: build/test.xcresult、ログ: build/test.log
 	rm -rf $(RESULT_BUNDLE)
