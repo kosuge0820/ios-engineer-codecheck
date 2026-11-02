@@ -47,7 +47,7 @@ Xcode で開く場合は共有スキーム `iOSEngineerCodeCheck` を使う。�
 ## 成否の判断と診断
 
 - 成否は終了コードで判断する。`make build` / `make test` / `make lint` はいずれも失敗時に非 0 で終わる
-- `make test` と `make test-repeat` は結果に関わらず `scripts/summarize-xcresult.sh` を実行し、「合計 / 成功 / 失敗 / スキップ」と、失敗したテストの名前・`ファイル:行`・メッセージを標準出力に出す。結果が Passed 以外（ランナーのクラッシュ等で失敗件数が 0 でも）や、テストが 1 件も実行されなかった場合（`-only-testing` の対象が消えた等）も非 0 で終わる。アプリターゲットのライン カバレッジも 1 行出す（テストプランで有効。参考値で閾値は設けない）`GITHUB_STEP_SUMMARY` が設定されていれば同じ内容を Markdown でも書き出す（CI の Summary タブ）
+- `make test` と `make test-repeat` は結果に関わらず `scripts/summarize-xcresult.sh` を実行し、「合計 / 成功 / 失敗 / スキップ」と、失敗したテストの名前・`ファイル:行`・メッセージを標準出力に出す。結果が Passed 以外（ランナーのクラッシュ等で失敗件数が 0 でも）や、テストが 1 件も実行されなかった場合（`-only-testing` の対象が消えた等）も非 0 で終わる。アプリターゲットのライン カバレッジも 1 行出す（テストプランで有効。参考値で閾値は設けない）。`GITHUB_STEP_SUMMARY` が設定されていれば同じ内容を Markdown でも書き出す（CI の Summary タブ）
 - 詳しく調べるときは `build/test.xcresult` を Xcode で開くか、次を実行する
 
   ```bash
@@ -87,6 +87,7 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 - 検索状態は列挙型で明示する（初期 / 読み込み中 / 結果あり / 0 件 / 失敗）。状態を増やすときは列挙型にケースを足し、UI はそれぞれを区別して表示する
 - 進行中の検索 `Task` は保持してキャンセルし、応答到着時に世代を照合する。古い応答で新しい結果を上書きしない
 - 強制アンラップ、`try!` / `try?`、空の `catch`、`@unchecked Sendable`、`nonisolated(unsafe)` を増やさない。強制アンラップと `try!` は `make lint` が機械的に検出する。失敗は `os.Logger` に記録し、必要なら UI に伝える
+- `.swift-format` では `TypeNamesShouldBeCapitalized` を無効にしている。テンプレート由来の `iOSEngineerCodeCheckApp` と `iOSEngineerCodeCheckUITests` が小文字始まりのためで、新しい型名は大文字始まりにする
 - Swift の警告は 0 件を維持する。プロジェクトのビルド設定 `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES` により、Xcode・`make build`・CI のどこでも警告はエラーになる
 - ブックマークは Search / Bookmark どちらの画面からも同じストアを通して更新し、即座に保存する
 - 永続化キーは `bookmarks.v1`。旧キー `data` の形式は一度だけ読み込んで移行する。保存形式を変えるときはキーを上げ、移行処理とテストを追加する。利用者のデータを黙って消さない。解釈できないデータは退避キー（`<キー>.unreadable`）へ複製してから例外にする
