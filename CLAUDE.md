@@ -135,7 +135,7 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 - CI のテストはワークフロー内で新規作成したシミュレータ（`xcrun simctl create`、UDID を `DESTINATION` に渡す）で実行する。イメージ既定の `iPhone 17` は Apple Watch とペアリングされており、並列テストのクローンに失敗するため
 - イメージ更新で `/Applications/Xcode_27.2.app` が無くなると「Record toolchain」ステップで落ちる。同ステップが先に `/Applications/Xcode*.app` の一覧を出すので、そこから `ci.yml` の `DEVELOPER_DIR` を直す
 - 失敗したときは、ジョブの Summary タブ（テスト件数と失敗一覧）→ 該当ステップのログ → アーティファクト `test-results` の `*.xcresult` を Xcode で開く、の順に見る
-- 同じブランチへの連続 push は古い実行を取り消す（`concurrency`）
+- PR への連続 push は古い実行を取り消す。`main` への push はコミットごとに別グループで実行し、すべてのコミットの結果を残す（`concurrency`）
 
 ## 作業の流れ
 

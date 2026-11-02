@@ -11,8 +11,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  # PR への連続 push では古い実行を取り消す。main への push は毎コミットの結果を残す
+  # PR への連続 push は同じグループにして古い実行を取り消す。main への push はコミットごとに別グループにする
+  # （同一グループは「実行中 1 + 待機 1」までで、3 連続 push すると中間の実行が取り消されるため）
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
