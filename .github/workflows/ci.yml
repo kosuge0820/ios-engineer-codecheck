@@ -12,7 +12,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # PR への連続 push では古い実行を取り消す。main への push は毎コミットの結果を残す
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
@@ -31,6 +32,9 @@ jobs:
 
       - name: Record toolchain (診断用)
         run: |
+          # イメージ更新で DEVELOPER_DIR のパスが無くなったとき、候補がすぐ分かるよう先に一覧を出す
+          ls -d /Applications/Xcode*.app
+          echo "DEVELOPER_DIR=${DEVELOPER_DIR}"
           xcodebuild -version
           xcrun simctl list runtimes
           xcrun swift-format --version
