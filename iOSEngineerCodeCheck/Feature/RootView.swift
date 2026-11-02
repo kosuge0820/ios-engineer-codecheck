@@ -16,23 +16,23 @@ struct RootView: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 BookmarkListView()
-                    .navigationTitle("Bookmarks")
+                    .navigationTitle("ブックマーク")
                     .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
                 Image(systemName: "bookmark.fill")
-                Text("Bookmark")
+                Text("ブックマーク")
             }
             .tag(Tab.bookmark)
 
             NavigationStack {
                 SearchView(isSearchFieldFocused: $isSearchFieldFocused)
-                    .navigationTitle("Search")
+                    .navigationTitle("検索")
                     .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
-                Image(systemName: "magnifyingglass.circle.fill")
-                Text("Search")
+                Image(systemName: "magnifyingglass")
+                Text("検索")
             }
             .tag(Tab.search)
         }

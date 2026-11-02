@@ -47,26 +47,32 @@ struct SearchView: View {
     private var loadMoreFooter: some View {
         switch searchModel.state {
         case .loaded(let results) where results.nextPage != nil:
-            Button("さらに読み込む") {
+            Button {
                 Task {
                     await searchModel.loadMore()
                 }
+            } label: {
+                // ヒット領域はラベルの大きさで決まるので、ラベル側で 44pt 以上にする
+                Text("さらに読み込む")
+                    .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, 8)
         case .loadingMore:
             ProgressView()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .padding(.vertical, 8)
         case .loadMoreFailed(_, let error):
             VStack(spacing: 8) {
                 Text(error.localizedDescription)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                Button("再試行") {
+                Button {
                     Task {
                         await searchModel.loadMore()
                     }
+                } label: {
+                    Text("再試行")
+                        .frame(minHeight: 44)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -80,7 +86,7 @@ struct SearchView: View {
     private var statusView: some View {
         switch searchModel.state {
         case .idle:
-            Text("キーワードを入力して Search を押すと、GitHub のリポジトリを検索できます")
+            Text("キーワードを入力してキーボードの検索キーを押すと、GitHub のリポジトリを検索できます")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
