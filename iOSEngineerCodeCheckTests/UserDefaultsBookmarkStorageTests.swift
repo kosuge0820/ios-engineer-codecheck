@@ -32,7 +32,7 @@ struct UserDefaultsBookmarkStorageTests {
 
     @Test("固定した v1 フィクスチャを読める（保存形式を変えたらキーを上げる）")
     func decodesFrozenV1Fixture() throws {
-        // Fixtures/bookmarks-v1.json は出荷済みの bookmarks.v1 の形式を固定したもの。
+        // Fixtures/bookmarks-v1.json は出荷済みの bookmarks.v1 の形式を固定したもの（save() の出力と同じ内容）。
         // このテストが落ちたら BookmarkRecordV1 を直すのではなく、キーを bookmarks.v2 に上げて移行処理とテストを足す。
         temporary.defaults.set(try Fixture.data("bookmarks-v1"), forKey: UserDefaultsBookmarkStorage.currentKey)
 
@@ -66,6 +66,14 @@ struct UserDefaultsBookmarkStorageTests {
         ]
         #expect(loaded == expected)
         #expect(loaded.allSatisfy { !$0.hasProvisionalID }, "v1 は GitHub の id を持つ")
+
+        // encode 方向も固定する: 現行の save() が書く JSON はフィクスチャと同じ内容（language が nil ならキー省略）
+        try storage.save(expected)
+        let saved = try #require(temporary.defaults.data(forKey: UserDefaultsBookmarkStorage.currentKey))
+        let savedObject = try JSONSerialization.jsonObject(with: saved) as? NSArray
+        let fixtureObject = try JSONSerialization.jsonObject(with: Fixture.data("bookmarks-v1")) as? NSArray
+        #expect(savedObject != nil)
+        #expect(savedObject == fixtureObject, "save() の出力が変わった。bookmarks.v2 にキーを上げて移行を書く")
     }
 
     @Test("旧キー data だけがある場合は読み込んで v1 に移し、旧キーを消す")
