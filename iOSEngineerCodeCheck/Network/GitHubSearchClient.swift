@@ -4,14 +4,19 @@ import Foundation
 ///
 /// HTTP ステータスを検証してからデコードし、失敗は `GitHubSearchError` として返す。
 struct GitHubSearchClient: RepositorySearching {
-    private let session: URLSession
+    /// GitHub の既定値。未認証は 10 リクエスト/分なので、ページを細かくしすぎない。
+    static let defaultPerPage = 30
 
-    init(session: URLSession = .shared) {
+    private let session: URLSession
+    private let perPage: Int
+
+    init(session: URLSession = .shared, perPage: Int = GitHubSearchClient.defaultPerPage) {
         self.session = session
+        self.perPage = perPage
     }
 
-    func search(query: String) async throws(GitHubSearchError) -> SearchResponse {
-        let request = try makeRequest(query: query)
+    func search(_ request: SearchRequest) async throws(GitHubSearchError) -> SearchResponse {
+        let request = try makeRequest(request)
 
         let data: Data
         let response: URLResponse
@@ -61,7 +66,8 @@ struct GitHubSearchClient: RepositorySearching {
         return allowed
     }()
 
-    private func makeRequest(query: String) throws(GitHubSearchError) -> URLRequest {
+    private func makeRequest(_ search: SearchRequest) throws(GitHubSearchError) -> URLRequest {
+        let query = search.query
         guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: Self.queryValueAllowed) else {
             throw .invalidQuery(message: "検索語を URL 用に符号化できません: \(query)")
         }
@@ -70,7 +76,11 @@ struct GitHubSearchClient: RepositorySearching {
         components.scheme = "https"
         components.host = "api.github.com"
         components.path = "/search/repositories"
-        components.percentEncodedQueryItems = [URLQueryItem(name: "q", value: encodedQuery)]
+        components.percentEncodedQueryItems = [
+            URLQueryItem(name: "q", value: encodedQuery),
+            URLQueryItem(name: "page", value: String(search.page)),
+            URLQueryItem(name: "per_page", value: String(perPage)),
+        ]
 
         guard let url = components.url else {
             throw .invalidQuery(message: "URL を構築できません: \(query)")

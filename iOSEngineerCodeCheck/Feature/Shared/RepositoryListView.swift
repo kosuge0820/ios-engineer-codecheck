@@ -1,8 +1,16 @@
 import SwiftUI
 
 /// リポジトリの一覧。行をタップすると詳細へ遷移する。Search / Bookmark の両タブで使う。
-struct RepositoryListView: View {
+///
+/// `footer` は一覧の末尾に置く任意の View（Search タブの「さらに読み込む」など）。
+struct RepositoryListView<Footer: View>: View {
     let repositories: [Repository]
+    private let footer: Footer
+
+    init(repositories: [Repository], @ViewBuilder footer: () -> Footer) {
+        self.repositories = repositories
+        self.footer = footer()
+    }
 
     var body: some View {
         ScrollView {
@@ -15,6 +23,7 @@ struct RepositoryListView: View {
                     .buttonStyle(.plain)
                     Divider()
                 }
+                footer
             }
             // 縦 ScrollView の幅は内容に従うため、0 件のときに overlay の文言が幅 0 にならないよう全幅にする
             .frame(maxWidth: .infinity)
@@ -22,6 +31,12 @@ struct RepositoryListView: View {
         .navigationDestination(for: Repository.self) { repository in
             RepositoryDetailView(repository: repository)
         }
+    }
+}
+
+extension RepositoryListView where Footer == EmptyView {
+    init(repositories: [Repository]) {
+        self.init(repositories: repositories) { EmptyView() }
     }
 }
 

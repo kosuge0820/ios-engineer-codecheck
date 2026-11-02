@@ -10,7 +10,7 @@ struct GitHubSearchClientTests {
     func returnsResponseOn200() async throws {
         StubURLProtocol.register(query: "ok", status: 200, body: try Fixture.data("search-success"))
 
-        let response = try await client.search(query: "ok")
+        let response = try await client.search(SearchRequest(query: "ok", page: 1))
 
         #expect(response.items.map(\.fullName) == ["swiftlang/swift", "openstack/swift"])
     }
@@ -21,7 +21,7 @@ struct GitHubSearchClientTests {
         StubURLProtocol.register(query: "limit-\(status)", status: status, body: body)
 
         await #expect(throws: GitHubSearchError.rateLimited) {
-            try await client.search(query: "limit-\(status)")
+            try await client.search(SearchRequest(query: "limit-\(status)", page: 1))
         }
     }
 
@@ -32,7 +32,7 @@ struct GitHubSearchClientTests {
         let message = "Validation Failed: The search is longer than 256 characters."
         let expected = GitHubSearchError.invalidQuery(message: message)
         await #expect(throws: expected) {
-            try await client.search(query: "too-long")
+            try await client.search(SearchRequest(query: "too-long", page: 1))
         }
     }
 
@@ -41,7 +41,7 @@ struct GitHubSearchClientTests {
         StubURLProtocol.register(query: "boom", status: 500, body: Data("<html>".utf8))
 
         await #expect(throws: GitHubSearchError.unexpectedStatus(500)) {
-            try await client.search(query: "boom")
+            try await client.search(SearchRequest(query: "boom", page: 1))
         }
     }
 
@@ -50,7 +50,7 @@ struct GitHubSearchClientTests {
         StubURLProtocol.register(query: "broken", status: 200, body: Data("{\"total_count\": 1}".utf8))
 
         do {
-            _ = try await client.search(query: "broken")
+            _ = try await client.search(SearchRequest(query: "broken", page: 1))
             Issue.record("エラーが投げられるべき")
         } catch {
             guard case .invalidResponse = error else {
@@ -66,7 +66,7 @@ struct GitHubSearchClientTests {
 
         // URLSession は URLError の userInfo にタスク情報を足すので、値全体ではなく code で比べる
         do {
-            _ = try await client.search(query: "offline")
+            _ = try await client.search(SearchRequest(query: "offline", page: 1))
             Issue.record("エラーが投げられるべき")
         } catch {
             guard case .network(let urlError) = error else {
@@ -81,29 +81,51 @@ struct GitHubSearchClientTests {
     func encodesAmpersandInQuery() async throws {
         StubURLProtocol.register(query: "a&b", status: 200, body: try Fixture.data("search-empty"))
 
-        _ = try await client.search(query: "a&b")
+        _ = try await client.search(SearchRequest(query: "a&b", page: 1))
 
         let requested = try #require(StubURLProtocol.requestedURLs.last)
-        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=a%26b")
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=a%26b&page=1&per_page=30")
+    }
+
+    @Test("ページ番号と 1 ページの件数（既定 30）をクエリに付ける")
+    func sendsPageAndPerPageQueryItems() async throws {
+        StubURLProtocol.register(query: "paged", status: 200, body: try Fixture.data("search-empty"))
+
+        _ = try await client.search(SearchRequest(query: "paged", page: 3))
+
+        let requested = try #require(StubURLProtocol.requestedURLs.last)
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=paged&page=3&per_page=30")
+    }
+
+    @Test("1 ページの件数は初期化時に変えられる")
+    func perPageIsConfigurable() async throws {
+        let client = GitHubSearchClient(session: StubURLProtocol.makeSession(), perPage: 100)
+        StubURLProtocol.register(query: "wide", status: 200, body: try Fixture.data("search-empty"))
+
+        _ = try await client.search(SearchRequest(query: "wide", page: 1))
+
+        let requested = try #require(StubURLProtocol.requestedURLs.last)
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=wide&page=1&per_page=100")
     }
 
     @Test("クエリ中の + はサーバで空白と解釈されないよう %2B に符号化される")
     func encodesPlusInQuery() async throws {
         StubURLProtocol.register(query: "c++", status: 200, body: try Fixture.data("search-empty"))
 
-        _ = try await client.search(query: "c++")
+        _ = try await client.search(SearchRequest(query: "c++", page: 1))
 
         let requested = try #require(StubURLProtocol.requestedURLs.last)
-        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=c%2B%2B")
+        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=c%2B%2B&page=1&per_page=30")
     }
 
     @Test("空白と = を含むクエリも区切りとして漏れずに送られる")
     func encodesSpaceAndEqualsInQuery() async throws {
         StubURLProtocol.register(query: "language:swift a=b", status: 200, body: try Fixture.data("search-empty"))
 
-        _ = try await client.search(query: "language:swift a=b")
+        _ = try await client.search(SearchRequest(query: "language:swift a=b", page: 1))
 
         let requested = try #require(StubURLProtocol.requestedURLs.last)
-        #expect(requested.absoluteString == "https://api.github.com/search/repositories?q=language:swift%20a%3Db")
+        let expected = "https://api.github.com/search/repositories?q=language:swift%20a%3Db&page=1&per_page=30"
+        #expect(requested.absoluteString == expected)
     }
 }
