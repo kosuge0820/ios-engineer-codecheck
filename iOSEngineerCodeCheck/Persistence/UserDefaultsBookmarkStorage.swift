@@ -72,7 +72,9 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
         let candidates = (1...Self.maxUnreadableBackups).map { Self.unreadableBackupKey(for: key, index: $0) }
         let backupKey = candidates.first { defaults.data(forKey: $0) == nil } ?? candidates[candidates.count - 1]
         defaults.set(data, forKey: backupKey)
-        Log.persistence.error("キー \(key, privacy: .public) の保存データを解釈できないため \(backupKey, privacy: .public) へ退避した: \(reason, privacy: .public)")
+        Log.persistence.error(
+            "キー \(key, privacy: .public) の保存データを解釈できないため \(backupKey, privacy: .public) へ退避した: \(reason, privacy: .public)"
+        )
         return .corruptedData(key: key, reason: reason)
     }
 }

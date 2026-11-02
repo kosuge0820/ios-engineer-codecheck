@@ -82,7 +82,8 @@ struct UserDefaultsBookmarkStorageTests {
 
     @Test("既に退避データがあっても、新たに壊れたデータは別の退避キーに残す")
     func secondUnreadableBlobIsAlsoPreserved() throws {
-        let firstBackupKey = UserDefaultsBookmarkStorage.unreadableBackupKey(for: UserDefaultsBookmarkStorage.currentKey)
+        let currentKey = UserDefaultsBookmarkStorage.currentKey
+        let firstBackupKey = UserDefaultsBookmarkStorage.unreadableBackupKey(for: currentKey)
         let older = Data("older garbage".utf8)
         let newer = Data("newer garbage".utf8)
         temporary.defaults.set(older, forKey: firstBackupKey)
@@ -93,7 +94,7 @@ struct UserDefaultsBookmarkStorageTests {
         }
 
         #expect(temporary.defaults.data(forKey: firstBackupKey) == older, "先に退避したものは消さない")
-        let secondBackupKey = UserDefaultsBookmarkStorage.unreadableBackupKey(for: UserDefaultsBookmarkStorage.currentKey, index: 2)
+        let secondBackupKey = UserDefaultsBookmarkStorage.unreadableBackupKey(for: currentKey, index: 2)
         #expect(temporary.defaults.data(forKey: secondBackupKey) == newer, "2 回目に壊れたデータも次の save で消えないよう残す")
 
         try storage.save([.fixture(id: 1)])

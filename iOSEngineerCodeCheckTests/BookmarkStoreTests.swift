@@ -122,8 +122,11 @@ struct BookmarkStoreTests {
 
     @Test("旧データ由来の暫定 id を持つ項目は fullName で照合される")
     func provisionalIDMatchesByFullName() {
-        let legacy = Repository.fixture(id: Repository.provisionalID(fullName: "swiftlang/swift"), fullName: "swiftlang/swift")
-        let fromSearch = Repository.fixture(id: 44838949, fullName: "swiftlang/swift")
+        let legacy = Repository.fixture(
+            id: Repository.provisionalID(fullName: "swiftlang/swift"),
+            fullName: "swiftlang/swift"
+        )
+        let fromSearch = Repository.fixture(id: 44_838_949, fullName: "swiftlang/swift")
         let storage = InMemoryBookmarkStorage(stored: [legacy])
         let store = BookmarkStore(storage: storage)
 
@@ -188,7 +191,9 @@ struct BookmarkStoreTests {
 
         store.resolveProvisionalID(with: Repository.fixture(id: 2, fullName: "b/two"))
         store.resolveProvisionalID(with: Repository.fixture(id: 1, fullName: "a/one", stargazersCount: 99))
-        store.resolveProvisionalID(with: Repository.fixture(id: Repository.provisionalID(fullName: "a/one"), fullName: "a/one"))
+        store.resolveProvisionalID(
+            with: Repository.fixture(id: Repository.provisionalID(fullName: "a/one"), fullName: "a/one")
+        )
 
         #expect(store.bookmarks == [real], "未登録は追加しない。実 id 同士は更新しない。暫定 id で上書きしない")
         #expect(storage.saveCount == 0)
