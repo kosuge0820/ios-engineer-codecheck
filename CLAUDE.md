@@ -112,11 +112,13 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 
 ### フィクスチャの更新
 
-- API 応答のフィクスチャは実 API から採取し、個人を特定できる値を含めない（GitHub 公開リポジトリのメタデータのみ）
+- API 応答のフィクスチャ（`search-*.json`, `error-*.json`）は固定点として扱う。`RepositoryDecodingTests` や `GitHubSearchClientTests` は件数・リポジトリ名・スター数などの値そのものを検証しているので、コミット済みの JSON を上書きするとテストが落ちる
+- 採取し直すときは別ファイルに出して差分を確認し、フィクスチャとテストの期待値を同じコミットで更新する。個人を特定できる値を含めない（GitHub 公開リポジトリのメタデータのみ）
 
   ```bash
   curl -s -H "Accept: application/vnd.github+json" \
-    "https://api.github.com/search/repositories?q=swift&per_page=2" > iOSEngineerCodeCheckTests/Fixtures/search-success.json
+    "https://api.github.com/search/repositories?q=swift&per_page=2" > build/search-success.new.json
+  diff <(python3 -m json.tool iOSEngineerCodeCheckTests/Fixtures/search-success.json) <(python3 -m json.tool build/search-success.new.json)
   ```
 
 - `bookmarks-v1.json` は保存形式の固定点なので更新しない。形式を変えるときは `bookmarks.v2` 用のフィクスチャとテストを追加し、v1 → v2 の移行テストで旧フィクスチャを読み続ける
