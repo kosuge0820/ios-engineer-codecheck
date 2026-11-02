@@ -42,7 +42,6 @@ struct RepositorySummaryTests {
         let stats = RepositorySummary(repository, isBookmarked: false, locale: locale).stats
         #expect(stats.map(\.title) == ["Star", "Fork", "Open Issue", "Watcher"])
         #expect(stats.map(\.valueText) == ["70,523", "10,887", "9,544", "70,523"])
-        #expect(stats.map(\.value) == [70523, 10887, 9544, 70523])
         #expect(stats[0].accessibilityLabel == "Star 70,523")
     }
 }

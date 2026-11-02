@@ -5,6 +5,7 @@ import SwiftUI
 /// `footer` は一覧の末尾に置く任意の View（Search タブの「さらに読み込む」など）。
 struct RepositoryListView<Footer: View>: View {
     @Environment(BookmarkStore.self) private var bookmarkStore
+    @Environment(\.locale) private var locale
 
     let repositories: [Repository]
     /// ブックマーク済みの印を行に出すか。Bookmark タブは全行が該当するので出さない。
@@ -23,7 +24,9 @@ struct RepositoryListView<Footer: View>: View {
                 NavigationLink(value: repository) {
                     RepositoryRow(
                         summary: RepositorySummary(
-                            repository, isBookmarked: showsBookmarkState && bookmarkStore.isBookmarked(repository)
+                            repository,
+                            isBookmarked: showsBookmarkState && bookmarkStore.isBookmarked(repository),
+                            locale: locale
                         )
                     )
                 }
@@ -78,9 +81,9 @@ struct RepositoryRow: View {
             : AnyLayout(HStackLayout(spacing: 12))
         return layout {
             if let language = summary.language {
-                Label(language, systemImage: "chevron.left.forwardslash.chevron.right")
+                Label(language, systemImage: RepositorySummary.languageSystemImage)
             }
-            Label(summary.starText, systemImage: "star")
+            Label(summary.starText, systemImage: RepositorySummary.starSystemImage)
         }
         .labelStyle(.compact)
         .font(.subheadline)

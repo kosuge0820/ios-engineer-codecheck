@@ -7,11 +7,12 @@ import SwiftUI
 struct RepositoryDetailView: View {
     @Environment(BookmarkStore.self) private var bookmarkStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
 
     let repository: Repository
 
     private var summary: RepositorySummary {
-        RepositorySummary(repository, isBookmarked: bookmarkStore.isBookmarked(repository))
+        RepositorySummary(repository, isBookmarked: bookmarkStore.isBookmarked(repository), locale: locale)
     }
 
     var body: some View {
@@ -27,7 +28,7 @@ struct RepositoryDetailView: View {
             .frame(maxWidth: .infinity)
         }
         .labelStyle(.compact)
-        .navigationTitle(repository.fullName)
+        .navigationTitle(summary.title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // 旧データ由来の暫定 id を、検索結果から開いた実 id で置き換える（未登録・実 id 同士なら何もしない）
@@ -43,10 +44,10 @@ struct RepositoryDetailView: View {
         return layout {
             avatar
             VStack(alignment: .leading, spacing: 6) {
-                Text(repository.fullName)
+                Text(summary.title)
                     .font(.title2.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
-                Label(summary.languageText, systemImage: "chevron.left.forwardslash.chevron.right")
+                Label(summary.languageText, systemImage: RepositorySummary.languageSystemImage)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
