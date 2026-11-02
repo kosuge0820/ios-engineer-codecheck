@@ -17,24 +17,37 @@ if [[ ! -d "$result_bundle" ]]; then
   exit 2
 fi
 
-summary_json="$(xcrun xcresulttool get test-results summary --path "$result_bundle")"
-tests_json="$(xcrun xcresulttool get test-results tests --path "$result_bundle")"
-# カバレッジはテストプランで有効な場合だけ入っている。無ければ空文字にして要約側で「取得できず」と出す
-coverage_json="$(xcrun xccov view --report --json "$result_bundle" 2>/dev/null || true)"
+# JSON は一時ファイル経由で渡す（環境変数や引数で渡すと ARG_MAX = 1 MiB を超えたときに python3 が起動できない）
+work_dir="$(mktemp -d)"
+trap 'rm -rf "$work_dir"' EXIT
+xcrun xcresulttool get test-results summary --path "$result_bundle" > "$work_dir/summary.json"
+xcrun xcresulttool get test-results tests --path "$result_bundle" > "$work_dir/tests.json"
+# カバレッジはテストプランで有効な場合だけ入っている。無ければ空ファイルにして要約側で「取得できず」と出す
+xcrun xccov view --report --json "$result_bundle" > "$work_dir/coverage.json" 2>/dev/null || : > "$work_dir/coverage.json"
 
-SUMMARY_JSON="$summary_json" TESTS_JSON="$tests_json" COVERAGE_JSON="$coverage_json" RESULT_BUNDLE="$result_bundle" python3 -I - <<'PY'
+python3 -I - "$work_dir" "$result_bundle" <<'PY'
 import json
 import os
 
-summary = json.loads(os.environ["SUMMARY_JSON"])
-tests = json.loads(os.environ["TESTS_JSON"])
-bundle = os.environ["RESULT_BUNDLE"]
+import sys
+
+work_dir = sys.argv[1]
+bundle = sys.argv[2]
+
+
+def read_json(name):
+    text = open(os.path.join(work_dir, name), encoding="utf-8").read().strip()
+    return json.loads(text) if text else None
+
+
+summary = read_json("summary.json") or {}
+tests = read_json("tests.json") or {}
 
 # アプリターゲットのライン カバレッジ（参考値。閾値は設けない）
 coverage_line = "カバレッジ: 取得できず（テストプランで無効か、xccov が失敗）"
 coverage_md = coverage_line
 try:
-    coverage = json.loads(os.environ.get("COVERAGE_JSON") or "null")
+    coverage = read_json("coverage.json")
 except json.JSONDecodeError:
     coverage = None
 if isinstance(coverage, dict):
