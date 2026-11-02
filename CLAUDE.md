@@ -24,7 +24,7 @@ make lint && make build && make test
 | --- | --- | --- |
 | `make`（`make help`） | ターゲット一覧と現在の変数値 | 標準出力 |
 | `make lint` | `swift-format lint --strict`（設定は `.swift-format`） | 指摘があれば `ファイル:行:列: error: [ルール名]` で非 0 |
-| `make build` | シミュレータ向けビルド。Swift の警告はエラー扱い | `build/build.log` |
+| `make build` | シミュレータ向けビルド。Swift の警告はエラー扱い（プロジェクト設定） | `build/build.log` |
 | `make test` | 単体テスト（テストプラン `iOSEngineerCodeCheck`）。終了後に要約を出す | `build/test.xcresult`, `build/test.log` |
 | `make test-repeat` | `SearchModelTests` を 20 回繰り返し、非同期競合の flaky を探す | `build/test-repeat.xcresult`, `build/test-repeat.log` |
 | `make ui-test` | UI テスト（テストプラン `iOSEngineerCodeCheckUI`）。`make test` では走らない | `build/ui-test.xcresult`, `build/ui-test.log` |
@@ -87,7 +87,7 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 - 検索状態は列挙型で明示する（初期 / 読み込み中 / 結果あり / 0 件 / 失敗）。状態を増やすときは列挙型にケースを足し、UI はそれぞれを区別して表示する
 - 進行中の検索 `Task` は保持してキャンセルし、応答到着時に世代を照合する。古い応答で新しい結果を上書きしない
 - 強制アンラップ、`try!` / `try?`、空の `catch`、`@unchecked Sendable`、`nonisolated(unsafe)` を増やさない。強制アンラップと `try!` は `make lint` が機械的に検出する。失敗は `os.Logger` に記録し、必要なら UI に伝える
-- Swift の警告は 0 件を維持する（`make build` と CI は警告をエラーにする）
+- Swift の警告は 0 件を維持する。プロジェクトのビルド設定 `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES` により、Xcode・`make build`・CI のどこでも警告はエラーになる
 - ブックマークは Search / Bookmark どちらの画面からも同じストアを通して更新し、即座に保存する
 - 永続化キーは `bookmarks.v1`。旧キー `data` の形式は一度だけ読み込んで移行する。保存形式を変えるときはキーを上げ、移行処理とテストを追加する。利用者のデータを黙って消さない。解釈できないデータは退避キー（`<キー>.unreadable`）へ複製してから例外にする
 
@@ -106,7 +106,7 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 | 非同期競合（連続検索・リセット・キャンセル） | 古い応答が新しい結果を上書きする、空欄なのに結果が残る | `SearchModelTests` がスタブの `hold` / `resume` で応答順を制御して検証。実行順ランダム化。`make test-repeat` で同じテストを繰り返し flaky を検出 | `make test`, `make test-repeat` |
 | API 依存（レート制限、応答形式の変更） | テストが実 API に当たって不安定になる、形式変更に気付けない | `StubURLProtocol` と `Fixtures/search-*.json`, `error-*.json` で通信を遮断。`GitHubSearchClientTests` が成功 / 0 件 / 403 / 422 / 5xx / 壊れた本文 / 未接続 / クエリ符号化を検証 | `make test` |
 | 永続化互換性（`bookmarks.v1`、旧キー `data`） | アプリ更新で利用者のブックマークが消える・復活する | `UserDefaultsBookmarkStorageTests` が往復、旧形式の移行、壊れたデータの退避を検証。`Fixtures/bookmarks-v1.json` は出荷済みの v1 形式を固定したもので、`BookmarkRecordV1` を変えると `decodesFrozenV1Fixture` が落ちる | `make test` |
-| Swift 6 strict concurrency の退行 | 警告が積もり、実行時の競合が隠れる | `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` | `make build` |
+| Swift 6 strict concurrency の退行 | 警告が積もり、実行時の競合が隠れる | プロジェクト設定 `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES`（Xcode でも同じ） | `make build` |
 | 禁止パターン・スタイルの揺れ | レビューが本質以外に時間を使う | `swift-format lint --strict`（`NeverForceUnwrap`, `NeverUseForceTry`, `NeverUseImplicitlyUnwrappedOptionals` 等） | `make lint` |
 | UI の退行（ダークモード、文字サイズ、タップ領域） | 自動検出できない | 対象外。PR の検証欄に手動確認した内容を書く | — |
 

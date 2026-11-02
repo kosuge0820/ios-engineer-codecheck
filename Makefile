@@ -25,8 +25,8 @@ REPEAT_RESULT_BUNDLE ?= $(BUILD_DIR)/test-repeat.xcresult
 REPEAT_TESTS   ?= iOSEngineerCodeCheckTests/SearchModelTests
 REPEAT_COUNT   ?= 20
 LOG_SUBSYSTEM  ?= jp.yumemi.iOSEngineerCodeCheck
-# 署名は不要。警告はエラー扱いにして 0 件を維持する
-XCODEBUILD_FLAGS ?= CODE_SIGNING_ALLOWED=NO SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+# 署名は不要。Swift 警告のエラー扱いはプロジェクト設定（SWIFT_TREAT_WARNINGS_AS_ERRORS）で有効にしてあり、Xcode と同じ結果になる
+XCODEBUILD_FLAGS ?= CODE_SIGNING_ALLOWED=NO
 
 XCODEBUILD = xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DESTINATION)' -derivedDataPath $(DERIVED_DATA)
 SOURCE_DIRS = iOSEngineerCodeCheck iOSEngineerCodeCheckTests iOSEngineerCodeCheckUITests
@@ -47,7 +47,7 @@ check-tools:
 	@command -v xcodebuild >/dev/null || { echo "xcodebuild が見つかりません。Xcode をインストールし xcode-select で選択してください" >&2; exit 1; }
 	@mkdir -p $(BUILD_DIR)
 
-build: check-tools ## シミュレータ向けビルド（警告はエラー扱い）。ログ: build/build.log
+build: check-tools ## シミュレータ向けビルド（Swift 警告はプロジェクト設定でエラー扱い）。ログ: build/build.log
 	$(PIPEFAIL) $(XCODEBUILD) build $(XCODEBUILD_FLAGS) 2>&1 | tee $(BUILD_DIR)/build.log
 
 test: check-tools ## 単体テスト（テストプラン iOSEngineerCodeCheck）。結果: build/test.xcresult、ログ: build/test.log
