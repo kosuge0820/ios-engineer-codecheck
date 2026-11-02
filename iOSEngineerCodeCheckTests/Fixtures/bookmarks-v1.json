@@ -1,0 +1,22 @@
+[
+  {
+    "id": 44838949,
+    "fullName": "swiftlang/swift",
+    "language": "Swift",
+    "stargazersCount": 70530,
+    "watchersCount": 70530,
+    "forksCount": 10884,
+    "openIssuesCount": 9528,
+    "avatarURL": "https://avatars.githubusercontent.com/u/42816656?v=4"
+  },
+  {
+    "id": 123456789,
+    "fullName": "example/design-docs",
+    "language": null,
+    "stargazersCount": 12,
+    "watchersCount": 12,
+    "forksCount": 3,
+    "openIssuesCount": 1,
+    "avatarURL": "https://avatars.githubusercontent.com/u/1?v=4"
+  }
+]

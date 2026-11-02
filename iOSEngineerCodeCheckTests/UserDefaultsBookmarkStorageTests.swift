@@ -30,6 +30,44 @@ struct UserDefaultsBookmarkStorageTests {
         #expect(try storage.load() == repositories)
     }
 
+    @Test("固定した v1 フィクスチャを読める（保存形式を変えたらキーを上げる）")
+    func decodesFrozenV1Fixture() throws {
+        // Fixtures/bookmarks-v1.json は出荷済みの bookmarks.v1 の形式を固定したもの。
+        // このテストが落ちたら BookmarkRecordV1 を直すのではなく、キーを bookmarks.v2 に上げて移行処理とテストを足す。
+        temporary.defaults.set(try Fixture.data("bookmarks-v1"), forKey: UserDefaultsBookmarkStorage.currentKey)
+
+        let loaded = try storage.load()
+
+        let expected = [
+            Repository(
+                id: 44_838_949,
+                fullName: "swiftlang/swift",
+                language: "Swift",
+                stargazersCount: 70530,
+                watchersCount: 70530,
+                forksCount: 10884,
+                openIssuesCount: 9528,
+                owner: Repository.Owner(
+                    avatarURL: try #require(URL(string: "https://avatars.githubusercontent.com/u/42816656?v=4"))
+                )
+            ),
+            Repository(
+                id: 123_456_789,
+                fullName: "example/design-docs",
+                language: nil,
+                stargazersCount: 12,
+                watchersCount: 12,
+                forksCount: 3,
+                openIssuesCount: 1,
+                owner: Repository.Owner(
+                    avatarURL: try #require(URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
+                )
+            ),
+        ]
+        #expect(loaded == expected)
+        #expect(loaded.allSatisfy { !$0.hasProvisionalID }, "v1 は GitHub の id を持つ")
+    }
+
     @Test("旧キー data だけがある場合は読み込んで v1 に移し、旧キーを消す")
     func migratesLegacyDataOnce() throws {
         temporary.defaults.set(try Fixture.data("legacy-bookmarks-data"), forKey: UserDefaultsBookmarkStorage.legacyKey)
