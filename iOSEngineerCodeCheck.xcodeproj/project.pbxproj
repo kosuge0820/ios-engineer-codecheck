@@ -296,7 +296,6 @@
 		};
 /* End PBXTargetDependency section */
 
-
 /* Begin XCBuildConfiguration section */
 		BFD94603244DC5EC0012785A /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -413,8 +412,8 @@
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				VALIDATE_PRODUCT = YES;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};

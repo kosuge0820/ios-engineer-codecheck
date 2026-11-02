@@ -30,7 +30,8 @@ extension Repository {
 }
 
 extension SearchResponse {
-    static func fixture(_ items: [Repository]) -> SearchResponse {
-        SearchResponse(totalCount: items.count, items: items)
+    /// `totalCount` を省略すると items の件数（＝続きが無い応答）になる。続きがある応答は大きい値を渡す。
+    static func fixture(_ items: [Repository], totalCount: Int? = nil) -> SearchResponse {
+        SearchResponse(totalCount: totalCount ?? items.count, items: items)
     }
 }

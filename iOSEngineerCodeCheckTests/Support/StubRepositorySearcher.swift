@@ -13,7 +13,8 @@ actor StubRepositorySearcher: RepositorySearching {
     private var holding = false
     private var pending: [Int: CheckedContinuation<Outcome, Never>] = [:]
     private var earlyOutcomes: [Int: Outcome] = [:]
-    private(set) var receivedQueries: [String] = []
+    private(set) var receivedRequests: [SearchRequest] = []
+    var receivedQueries: [String] { receivedRequests.map(\.query) }
 
     init(outcomes: [Outcome] = []) {
         scripted = outcomes
@@ -41,10 +42,10 @@ actor StubRepositorySearcher: RepositorySearching {
     func waitForCalls(_ count: Int, timeout: Duration = .seconds(5)) async {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
-        while receivedQueries.count < count {
+        while receivedRequests.count < count {
             if clock.now >= deadline {
                 Issue.record(
-                    "StubRepositorySearcher: search が \(count) 回呼ばれるのを \(timeout) 待ったが \(receivedQueries.count) 回だった"
+                    "StubRepositorySearcher: search が \(count) 回呼ばれるのを \(timeout) 待ったが \(receivedRequests.count) 回だった"
                 )
                 return
             }
@@ -52,9 +53,9 @@ actor StubRepositorySearcher: RepositorySearching {
         }
     }
 
-    func search(query: String) async throws(GitHubSearchError) -> SearchResponse {
-        let callIndex = receivedQueries.count
-        receivedQueries.append(query)
+    func search(_ request: SearchRequest) async throws(GitHubSearchError) -> SearchResponse {
+        let callIndex = receivedRequests.count
+        receivedRequests.append(request)
 
         let outcome: Outcome
         if holding {

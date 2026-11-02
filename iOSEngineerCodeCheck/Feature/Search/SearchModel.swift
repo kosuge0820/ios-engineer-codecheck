@@ -44,7 +44,7 @@ final class SearchModel {
 
         let task = Task { [searcher] () -> Result<SearchResponse, GitHubSearchError> in
             do throws(GitHubSearchError) {
-                return .success(try await searcher.search(query: trimmedQuery))
+                return .success(try await searcher.search(SearchRequest(query: trimmedQuery, page: 1)))
             } catch {
                 return .failure(error)
             }

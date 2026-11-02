@@ -10,8 +10,8 @@ struct GitHubSearchClient: RepositorySearching {
         self.session = session
     }
 
-    func search(query: String) async throws(GitHubSearchError) -> SearchResponse {
-        let request = try makeRequest(query: query)
+    func search(_ request: SearchRequest) async throws(GitHubSearchError) -> SearchResponse {
+        let request = try makeRequest(query: request.query)
 
         let data: Data
         let response: URLResponse

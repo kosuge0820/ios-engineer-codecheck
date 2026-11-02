@@ -1,8 +1,14 @@
 import Foundation
 
+/// 1 回の検索要求。`page` は 1 始まり。
+struct SearchRequest: Hashable, Sendable {
+    let query: String
+    let page: Int
+}
+
 /// リポジトリ検索の通信境界。本番は `GitHubSearchClient`、テストはスタブで差し替える。
 protocol RepositorySearching: Sendable {
-    func search(query: String) async throws(GitHubSearchError) -> SearchResponse
+    func search(_ request: SearchRequest) async throws(GitHubSearchError) -> SearchResponse
 }
 
 /// 検索で起こり得る失敗。UI は種類ごとに扱いを変えられる。
