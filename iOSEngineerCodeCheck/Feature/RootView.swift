@@ -48,7 +48,7 @@ struct RootView: View {
                 do {
                     try await Task.sleep(for: .milliseconds(100))
                 } catch {
-                    return // 待機中に別タブへ移ったらフォーカスしない
+                    return  // 待機中に別タブへ移ったらフォーカスしない
                 }
                 guard selectedTab == .search else { return }
                 isSearchFieldFocused = true

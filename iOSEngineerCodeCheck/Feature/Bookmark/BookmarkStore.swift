@@ -42,8 +42,9 @@ final class BookmarkStore {
     /// 詳細画面の表示時にも呼ぶ。`isBookmarked` が true の経路では `add` が呼ばれないため、ここで置き換えないと暫定 id が残り続ける。
     func resolveProvisionalID(with repository: Repository) {
         guard !repository.hasProvisionalID,
-              let index = index(of: repository),
-              bookmarks[index].hasProvisionalID else { return }
+            let index = index(of: repository),
+            bookmarks[index].hasProvisionalID
+        else { return }
         bookmarks[index] = repository
         persist()
     }

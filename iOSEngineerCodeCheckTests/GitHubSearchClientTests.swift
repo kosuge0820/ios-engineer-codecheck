@@ -17,7 +17,8 @@ struct GitHubSearchClientTests {
 
     @Test("403 はレート制限として型付きエラーになる", arguments: [403, 429])
     func rateLimited(status: Int) async throws {
-        StubURLProtocol.register(query: "limit-\(status)", status: status, body: try Fixture.data("error-403-rate-limit"))
+        let body = try Fixture.data("error-403-rate-limit")
+        StubURLProtocol.register(query: "limit-\(status)", status: status, body: body)
 
         await #expect(throws: GitHubSearchError.rateLimited) {
             try await client.search(query: "limit-\(status)")
@@ -28,7 +29,9 @@ struct GitHubSearchClientTests {
     func invalidQueryOn422() async throws {
         StubURLProtocol.register(query: "too-long", status: 422, body: try Fixture.data("error-422"))
 
-        await #expect(throws: GitHubSearchError.invalidQuery(message: "Validation Failed: The search is longer than 256 characters.")) {
+        let message = "Validation Failed: The search is longer than 256 characters."
+        let expected = GitHubSearchError.invalidQuery(message: message)
+        await #expect(throws: expected) {
             try await client.search(query: "too-long")
         }
     }

@@ -1,0 +1,73 @@
+name: CI
+
+# ローカルと同じ Makefile のターゲットを実行する。実 API には触れない（テストはスタブ）ので秘密情報は不要。
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # PR への連続 push は同じグループにして古い実行を取り消す。main への push はコミットごとに別グループにする
+  # （同一グループは「実行中 1 + 待機 1」までで、3 連続 push すると中間の実行が取り消されるため）
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-test:
+    # Xcode 27 系は macos-latest（macOS 26 イメージ、Xcode 26.x）には無く、xcode-27 イメージ（公開プレビュー）にだけある。
+    # https://github.com/actions/runner-images （Available Images の xcode-27 / xcode-27-xlarge）
+    # macos-latest に戻すと Xcode 26 になり iOS 27 の SDK が無いためビルドできない。
+    runs-on: xcode-27
+    timeout-minutes: 40
+    env:
+      # ローカル（Xcode 27.2）と合わせる。イメージ側の 27.2 は Release Candidate ビルド。
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app
+      # テストに使うシミュレータは下の「Create simulator」で作り、DESTINATION に UDID で渡す
+      SIMULATOR_DEVICE_TYPE: iPhone 17
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Record toolchain (診断用)
+        run: |
+          # イメージ更新で DEVELOPER_DIR のパスが無くなったとき、候補がすぐ分かるよう先に一覧を出す
+          ls -d /Applications/Xcode*.app
+          echo "DEVELOPER_DIR=${DEVELOPER_DIR}"
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcrun swift-format --version
+
+      # イメージ既定の iPhone 17 は Apple Watch とペアリングされていて、並列テストのクローン時に
+      # 「missing runtime bundle: Apple Watch ...」で失敗する（初回 CI で確認）。ペアリング無しの
+      # シミュレータを作り直して使う。ランタイムは省略すると最新の iOS が選ばれる（Makefile の OS=latest と同じ）
+      - name: Create simulator
+        run: |
+          udid=$(xcrun simctl create "CI ${SIMULATOR_DEVICE_TYPE}" "${SIMULATOR_DEVICE_TYPE}")
+          xcrun simctl list devices | grep "$udid"
+          echo "DESTINATION=platform=iOS Simulator,id=${udid}" >> "$GITHUB_ENV"
+
+      - name: Lint
+        run: make lint
+
+      - name: Build
+        run: make build
+
+      - name: Unit tests
+        run: make test
+
+      - name: Repeat concurrency tests (flaky 検出)
+        run: make test-repeat
+
+      - name: Upload test results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            build/*.xcresult
+            build/*.log
+          if-no-files-found: ignore
+          retention-days: 14

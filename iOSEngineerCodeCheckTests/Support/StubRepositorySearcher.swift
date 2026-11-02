@@ -43,7 +43,9 @@ actor StubRepositorySearcher: RepositorySearching {
         let deadline = clock.now + timeout
         while receivedQueries.count < count {
             if clock.now >= deadline {
-                Issue.record("StubRepositorySearcher: search が \(count) 回呼ばれるのを \(timeout) 待ったが \(receivedQueries.count) 回だった")
+                Issue.record(
+                    "StubRepositorySearcher: search が \(count) 回呼ばれるのを \(timeout) 待ったが \(receivedQueries.count) 回だった"
+                )
                 return
             }
             await Task.yield()

@@ -42,8 +42,8 @@ final class StubURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
-        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?.first { $0.name == "q" }?.value ?? ""
+        let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        let query = queryItems?.first { $0.name == "q" }?.value ?? ""
         let scripted = Self.state.withLock { state -> Scripted? in
             state.requestedURLs.append(url)
             return state.scripted[query]
@@ -51,10 +51,11 @@ final class StubURLProtocol: URLProtocol {
 
         switch scripted {
         case .response(let status, let body):
-            guard let response = HTTPURLResponse(
+            let response = HTTPURLResponse(
                 url: url, statusCode: status, httpVersion: "HTTP/1.1",
                 headerFields: ["Content-Type": "application/json; charset=utf-8"]
-            ) else {
+            )
+            guard let response else {
                 client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
                 return
             }
