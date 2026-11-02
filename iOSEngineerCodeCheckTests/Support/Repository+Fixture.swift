@@ -35,3 +35,10 @@ extension SearchResponse {
         SearchResponse(totalCount: totalCount ?? items.count, items: items)
     }
 }
+
+extension SearchResults {
+    /// 重複の無い items をそのまま表示している状態。`nextPage` 省略時は続き無し。
+    static func fixture(query: String, items: [Repository], nextPage: Int? = nil) -> SearchResults {
+        SearchResults(query: query, items: items, nextPage: nextPage, receivedCount: items.count)
+    }
+}

@@ -37,10 +37,7 @@ struct SearchView: View {
     }
 
     private var repositories: [Repository] {
-        if case .loaded(let repositories) = searchModel.state {
-            return repositories
-        }
-        return []
+        searchModel.state.results?.items ?? []
     }
 
     @ViewBuilder
@@ -53,7 +50,7 @@ struct SearchView: View {
                 .padding(.horizontal, 32)
         case .loading:
             ProgressView()
-        case .loaded:
+        case .loaded, .loadingMore, .loadMoreFailed:
             EmptyView()
         case .empty:
             Text("該当するリポジトリがありません")

@@ -5,14 +5,65 @@ import Observation
 enum SearchState: Equatable, Sendable {
     /// まだ検索していない
     case idle
-    /// 検索中
+    /// 最初のページを待っている。表示中の結果は無い
     case loading
     /// 1 件以上の結果がある
-    case loaded([Repository])
+    case loaded(SearchResults)
+    /// 表示中の結果を保ったまま次のページを待っている
+    case loadingMore(SearchResults)
+    /// 追加読み込みに失敗した。表示中の結果は保持し、再試行できる
+    case loadMoreFailed(SearchResults, GitHubSearchError)
     /// 検索したが 0 件
     case empty
-    /// 検索に失敗した
+    /// 最初のページの取得に失敗した
     case failed(GitHubSearchError)
+
+    /// 表示している結果（結果を持つ 3 状態で共通）。
+    var results: SearchResults? {
+        switch self {
+        case .loaded(let results), .loadingMore(let results), .loadMoreFailed(let results, _):
+            results
+        case .idle, .loading, .empty, .failed:
+            nil
+        }
+    }
+}
+
+/// 1 回の検索セッションで表示している結果。`items` は GitHub の `id` で重複排除済み。
+struct SearchResults: Equatable, Sendable {
+    /// GitHub Search API が返す件数の上限。これを超えるページは要求しない。
+    static let resultCap = 1000
+
+    /// トリム済みの検索語。追加読み込みはテキスト欄の現在値ではなくこれを使う。
+    let query: String
+    private(set) var items: [Repository]
+    /// 次に要求するページ。`nil` なら続きは無い。
+    private(set) var nextPage: Int?
+    /// 重複排除前に受け取った件数。`totalCount` との比較に使う。
+    private(set) var receivedCount: Int
+
+    init(query: String, items: [Repository] = [], nextPage: Int? = nil, receivedCount: Int = 0) {
+        self.query = query
+        self.items = items
+        self.nextPage = nextPage
+        self.receivedCount = receivedCount
+    }
+
+    /// `page` 番目の応答を取り込む。既に表示している `id` は追加しない（先に表示した方を残す）。
+    ///
+    /// 続きの有無は、応答が空か、受け取った件数が `totalCount`（上限 1000）に達したかで決める。
+    func appending(_ response: SearchResponse, page: Int) -> SearchResults {
+        var seen = Set(items.map(\.id))
+        var merged = items
+        for repository in response.items where seen.insert(repository.id).inserted {
+            merged.append(repository)
+        }
+        let received = receivedCount + response.items.count
+        let reachedEnd = response.items.isEmpty || received >= min(response.totalCount, Self.resultCap)
+        return SearchResults(
+            query: query, items: merged, nextPage: reachedEnd ? nil : page + 1, receivedCount: received
+        )
+    }
 }
 
 /// 検索の入力と結果を所有する。通信は `RepositorySearching` に委ねる。
@@ -59,7 +110,8 @@ final class SearchModel {
         searchTask = nil
         switch outcome {
         case .success(let response):
-            state = response.items.isEmpty ? .empty : .loaded(response.items)
+            let results = SearchResults(query: trimmedQuery).appending(response, page: 1)
+            state = results.items.isEmpty ? .empty : .loaded(results)
         case .failure(let error):
             Log.search.error("検索に失敗: \(String(describing: error), privacy: .public)")
             state = .failed(error)

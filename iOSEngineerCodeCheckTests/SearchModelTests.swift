@@ -33,7 +33,7 @@ struct SearchModelTests {
 
         await model.search()
 
-        #expect(model.state == .loaded(items))
+        #expect(model.state == .loaded(.fixture(query: "swift", items: items)))
         #expect(await stub.receivedQueries == ["swift"])
     }
 
@@ -74,7 +74,7 @@ struct SearchModelTests {
         await stub.resume(call: 0, with: .success(.fixture(items)))
         await searching.value
 
-        #expect(model.state == .loaded(items))
+        #expect(model.state == .loaded(.fixture(query: "swift", items: items)))
     }
 
     @Test("reset で結果を捨てて idle に戻る")
@@ -106,12 +106,12 @@ struct SearchModelTests {
         let newItems = [Repository.fixture(id: 2, fullName: "new/repo")]
         await stub.resume(call: 1, with: .success(.fixture(newItems)))
         await second.value
-        #expect(model.state == .loaded(newItems))
+        #expect(model.state == .loaded(.fixture(query: "new", items: newItems)))
 
         let oldItems = [Repository.fixture(id: 1, fullName: "old/repo")]
         await stub.resume(call: 0, with: .success(.fixture(oldItems)))
         await first.value
-        #expect(model.state == .loaded(newItems), "古い応答で新しい結果を上書きしてはいけない")
+        #expect(model.state == .loaded(.fixture(query: "new", items: newItems)), "古い応答で新しい結果を上書きしてはいけない")
     }
 
     @Test("古い検索が失敗で終わっても、新しい検索の結果を failed で上書きしない")
@@ -134,7 +134,7 @@ struct SearchModelTests {
 
         await stub.resume(call: 0, with: .failure(.rateLimited))
         await first.value
-        #expect(model.state == .loaded(newItems))
+        #expect(model.state == .loaded(.fixture(query: "new", items: newItems)))
     }
 
     @Test("検索中に reset すると、その後に届いた応答は捨てられ idle のまま")
@@ -174,10 +174,10 @@ struct SearchModelTests {
         let items = [Repository.fixture(id: 9, fullName: "second/repo")]
         await stub.resume(call: 1, with: .success(.fixture(items)))
         await second.value
-        #expect(model.state == .loaded(items))
+        #expect(model.state == .loaded(.fixture(query: "second", items: items)))
 
         await stub.resume(call: 0, with: .success(.fixture([.fixture(id: 1, fullName: "first/repo")])))
         await first.value
-        #expect(model.state == .loaded(items))
+        #expect(model.state == .loaded(.fixture(query: "second", items: items)))
     }
 }
