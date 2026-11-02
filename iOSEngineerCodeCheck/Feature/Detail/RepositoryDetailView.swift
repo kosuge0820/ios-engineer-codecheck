@@ -1,62 +1,33 @@
 import SwiftUI
 
-/// リポジトリ詳細。ブックマーク状態は `BookmarkStore` から導出し、ボタンは同じストアを更新する。
+/// リポジトリ詳細。名前を見出しに、統計をラベル付きの格子で示す。ブックマーク状態は `BookmarkStore` から導出する。
+///
+/// 色はシステムのセマンティックカラーだけを使い（ダークモード対応）、文字はテキストスタイルだけで指定する（Dynamic Type）。
+/// アクセシビリティサイズではヘッダーと統計を 1 列に並べ替える。
 struct RepositoryDetailView: View {
     @Environment(BookmarkStore.self) private var bookmarkStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let repository: Repository
 
-    private var languageDescription: String {
-        repository.language.map { "Written in \($0)" } ?? ""
+    private var summary: RepositorySummary {
+        RepositorySummary(repository, isBookmarked: bookmarkStore.isBookmarked(repository))
     }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 28) {
-                AsyncImage(url: repository.owner.avatarURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                    case .failure:
-                        Image(systemName: "person.crop.square")
-                            .resizable()
-                            .scaledToFit()
-                            .foregroundStyle(.secondary)
-                            .padding(48)
-                    default:
-                        ProgressView()
-                    }
-                }
-                .frame(maxWidth: 360, maxHeight: 360)
-                .frame(maxWidth: .infinity)
-
-                Text(repository.fullName)
-                    .font(.title)
-                    .multilineTextAlignment(.center)
-
-                HStack(alignment: .top) {
-                    Text(languageDescription)
-                        .font(.headline)
-
-                    Spacer(minLength: 24)
-
-                    VStack(alignment: .trailing, spacing: 16) {
-                        Text("\(repository.stargazersCount) stars")
-                        Text("\(repository.watchersCount) watchers")
-                        Text("\(repository.forksCount) forks")
-                        Text("\(repository.openIssuesCount) open issues")
-                    }
-                    .font(.subheadline)
-                }
-
+            VStack(alignment: .leading, spacing: 24) {
+                header
+                statsGrid
                 bookmarkButton
             }
             .padding(20)
-            .frame(maxWidth: .infinity, alignment: .top)
+            // iPad や横向きで行が間延びしないよう読みやすい幅に収める
+            .frame(maxWidth: 640, alignment: .leading)
+            .frame(maxWidth: .infinity)
         }
-        .navigationTitle("")
+        .labelStyle(.compact)
+        .navigationTitle(repository.fullName)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // 旧データ由来の暫定 id を、検索結果から開いた実 id で置き換える（未登録・実 id 同士なら何もしない）
@@ -64,20 +35,97 @@ struct RepositoryDetailView: View {
         }
     }
 
+    private var header: some View {
+        let layout =
+            dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+        return layout {
+            avatar
+            VStack(alignment: .leading, spacing: 6) {
+                Text(repository.fullName)
+                    .font(.title2.weight(.semibold))
+                    .accessibilityAddTraits(.isHeader)
+                Label(summary.languageText, systemImage: "chevron.left.forwardslash.chevron.right")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// オーナーのアバター。装飾なので VoiceOver からは隠す。
+    private var avatar: some View {
+        AsyncImage(url: repository.owner.avatarURL) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+            case .failure:
+                Image(systemName: "person.crop.square.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.secondary)
+                    .padding(12)
+            default:
+                ProgressView()
+            }
+        }
+        .frame(width: 72, height: 72)
+        .background(.fill.tertiary)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityHidden(true)
+    }
+
+    private var statsGrid: some View {
+        let minimumWidth: CGFloat = dynamicTypeSize.isAccessibilitySize ? 320 : 140
+        return LazyVGrid(columns: [GridItem(.adaptive(minimum: minimumWidth), spacing: 12)], spacing: 12) {
+            ForEach(summary.stats) { stat in
+                StatCell(stat: stat)
+            }
+        }
+    }
+
     @ViewBuilder
     private var bookmarkButton: some View {
-        if bookmarkStore.isBookmarked(repository) {
-            Button("Remove from Bookmark") {
+        if summary.isBookmarked {
+            Button {
                 bookmarkStore.remove(repository)
+            } label: {
+                Label("ブックマークから削除", systemImage: "bookmark.slash")
+                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
+            .buttonStyle(.bordered)
+            .controlSize(.large)
         } else {
-            Button("Add to Bookmark") {
+            Button {
                 bookmarkStore.add(repository)
+            } label: {
+                Label("ブックマークに追加", systemImage: "bookmark")
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.blue)
+            .controlSize(.large)
         }
+    }
+}
+
+/// 統計 1 項目のカード。ラベルと値を縦に並べ、VoiceOver には 1 要素として読ませる。
+private struct StatCell: View {
+    let stat: RepositorySummary.Stat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(stat.title, systemImage: stat.systemImage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(stat.valueText)
+                .font(.title3.weight(.semibold))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(stat.accessibilityLabel)
     }
 }
