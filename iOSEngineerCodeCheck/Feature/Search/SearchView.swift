@@ -52,12 +52,12 @@ struct SearchView: View {
                     await searchModel.loadMore()
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.vertical, 8)
         case .loadingMore:
             ProgressView()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .padding(.vertical, 8)
         case .loadMoreFailed(_, let error):
             VStack(spacing: 8) {
                 Text(error.localizedDescription)
@@ -68,6 +68,7 @@ struct SearchView: View {
                         await searchModel.loadMore()
                     }
                 }
+                .frame(minHeight: 44)
             }
             .frame(maxWidth: .infinity)
             .padding(16)
@@ -80,7 +81,7 @@ struct SearchView: View {
     private var statusView: some View {
         switch searchModel.state {
         case .idle:
-            Text("キーワードを入力して Search を押すと、GitHub のリポジトリを検索できます")
+            Text("キーワードを入力してキーボードの検索キーを押すと、GitHub のリポジトリを検索できます")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
