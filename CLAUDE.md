@@ -68,11 +68,11 @@ Xcode で開く場合は共有スキーム `iOSEngineerCodeCheck` を使う。�
 
 | 責務 | 置き場所 | 備考 |
 | --- | --- | --- |
-| API モデル | `Model/` | `Repository` / `SearchResponse`。GitHub の数値 `id` を同一性に使う。UI 状態は持たせない |
+| API モデル | `Model/` | `Repository` / `SearchResponse`。GitHub の数値 `id` を同一性に使う。UI 状態は持たせない。`description` / `htmlURL` / `pushedAt`（ISO 8601、`JSONDecoder.gitHubAPI()` で読む）/ `isArchived` は無いものを補完せず optional のまま |
 | 通信 | `Network/` | `RepositorySearching` protocol と `URLSession` 実装 `GitHubSearchClient`。HTTP ステータスを検証し、エラーは `GitHubSearchError` で表す |
-| 永続化 | `Persistence/` | `BookmarkStoring` protocol と `UserDefaultsBookmarkStorage`。保存形式は API モデルと分離した専用型（`BookmarkRecordV1`） |
-| 画面状態 | `Feature/Search/SearchModel.swift`, `Feature/Bookmark/BookmarkStore.swift` | `@Observable @MainActor` な型が検索状態・ブックマーク状態を所有し、`.environment()` で注入する |
-| View | `Feature/`（`RootView`, `Search/`, `Bookmark/`, `Detail/`, `Shared/`） | 状態を描画するだけ。通信・永続化を直接呼ばない。表示用の文字列（桁区切り、VoiceOver の読み上げ文）は `Shared/RepositorySummary.swift` で組み立て、単体テストする |
+| 永続化 | `Persistence/` | `BookmarkStoring` protocol と `UserDefaultsBookmarkStorage`。保存形式は API モデルと分離した専用型（`BookmarkRecordV1`。後から足した項目は optional で、日付は ISO 8601 文字列） |
+| 画面状態 | `Feature/Search/SearchModel.swift`, `Feature/Bookmark/BookmarkStore.swift` | `@Observable @MainActor` な型が検索状態・ブックマーク状態を所有し、`.environment()` で注入する。`BookmarkStore.refresh(with:)` は詳細を検索から開いたとき保存済みの値を最新に置き換える（通信なし） |
+| View | `Feature/`（`RootView`, `Search/`, `Bookmark/`, `Detail/`, `Shared/`） | 状態を描画するだけ。通信・永続化を直接呼ばない。表示用の文字列（桁区切り、説明文のトリム、最終更新の相対表記、VoiceOver の読み上げ文）は `Shared/RepositorySummary.swift` で組み立て、単体テストする。相対表記の基準時刻 `now` は View が `Date.now` を渡す |
 | ログ | `Support/Log.swift` | `os.Logger` を `network` / `persistence` / `search` のカテゴリで用意 |
 | 単体テスト | `iOSEngineerCodeCheckTests/`（Swift Testing） | `Fixtures/` に JSON、`Support/` にスタブ（`StubRepositorySearcher`, `StubURLProtocol`, `InMemoryBookmarkStorage`, `TemporaryDefaults`） |
 | UI テスト | `iOSEngineerCodeCheckUITests/` | 既定では実行しない（後述） |
@@ -90,9 +90,10 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 - `.swift-format` では `TypeNamesShouldBeCapitalized` を無効にしている。テンプレート由来の `iOSEngineerCodeCheckApp` と `iOSEngineerCodeCheckUITests` が小文字始まりのためで、新しい型名は大文字始まりにする
 - Swift の警告は 0 件を維持する。プロジェクトのビルド設定 `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES` により、Xcode・`make build`・CI のどこでも警告はエラーになる
 - ブックマークは Search / Bookmark どちらの画面からも同じストアを通して更新し、即座に保存する
-- UI は Human Interface Guidelines に沿う。色はシステムのセマンティックカラー（`.primary` / `.secondary` / `.tint` / `.fill`）だけを使い、固定色を置かない（ダークモードで自動的に追従させる）。文字はテキストスタイル（`.headline` / `.subheadline` 等）だけで指定し、固定ポイント数を使わない（Dynamic Type）。横並びのレイアウトは `dynamicTypeSize.isAccessibilitySize` で縦並びに切り替える（`AnyLayout`）。タップ対象は 44pt 以上にする（`.controlSize(.large)` や `minHeight: 44`）。装飾画像は `accessibilityHidden(true)`、複合要素は `accessibilityElement(children: .ignore)` + `accessibilityLabel` で 1 要素として読ませ、見出しには `.isHeader` を付ける
+- UI は Human Interface Guidelines に沿う。色はシステムのセマンティックカラー（`.primary` / `.secondary` / `.tint` / `.fill`）だけを使い、固定色を置かない（ダークモードで自動的に追従させる）。文字はテキストスタイル（`.headline` / `.subheadline` 等）だけで指定し、固定ポイント数を使わない（Dynamic Type）。横並びのレイアウトは `dynamicTypeSize.isAccessibilitySize` で縦並びに切り替える（`Shared/AdaptiveStack`）。短いラベルが複数並ぶ行は `Shared/FlowLayout` でラベル単位に折り返す（単語の途中で折れない）。タップ対象は 44pt 以上にする（`.controlSize(.large)` や `minHeight: 44`）。装飾画像は `accessibilityHidden(true)`、複合要素は `accessibilityElement(children: .ignore)` + `accessibilityLabel` で 1 要素として読ませ、見出しには `.isHeader` を付ける
 - 表示言語は日本語に統一する（String Catalog は入れていない）。GitHub 由来の固有名詞（Star / Fork / Open Issue / Watcher）はそのまま使う
-- 永続化キーは `bookmarks.v1`。旧キー `data` の形式は一度だけ読み込んで移行する。保存形式を変えるときはキーを上げ、移行処理とテストを追加する。利用者のデータを黙って消さない。解釈できないデータは退避キー（`<キー>.unreadable`）へ複製してから例外にする
+- 永続化キーは `bookmarks.v1`。旧キー `data` の形式は一度だけ読み込んで移行する。項目を足すときは optional にしてキーは据え置く（旧データは項目なしで読め、`nil` はキー省略で書く）。項目を減らす・型や意味を変えるときはキーを上げ、移行処理とテストを追加する。利用者のデータを黙って消さない。解釈できないデータは退避キー（`<キー>.unreadable`）へ複製してから例外にする
+- 一覧と詳細の表示項目は、値が無ければ出さない（説明が null / 空白のみ、最終更新が null、旧い保存データ）。`html_url` だけは GitHub の URL 規則から表示用に導く（`RepositorySummary.webURL`）。モデルには補完した値を書き戻さない
 
 ## テストの約束
 
@@ -108,7 +109,7 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
 | --- | --- | --- | --- |
 | 非同期競合（連続検索・リセット・キャンセル） | 古い応答が新しい結果を上書きする、空欄なのに結果が残る | `SearchModelTests` がスタブの `hold` / `resume` で応答順を制御して検証。実行順ランダム化。`make test-repeat` で同じテストを繰り返し flaky を検出 | `make test`, `make test-repeat` |
 | API 依存（レート制限、応答形式の変更） | テストが実 API に当たって不安定になる、形式変更に気付けない | `StubURLProtocol` と `Fixtures/search-*.json`, `error-*.json` で通信を遮断。`GitHubSearchClientTests` が成功 / 0 件 / 403 / 422 / 5xx / 壊れた本文 / 未接続 / クエリ符号化を検証 | `make test` |
-| 永続化互換性（`bookmarks.v1`、旧キー `data`） | アプリ更新で利用者のブックマークが消える・復活する | `UserDefaultsBookmarkStorageTests` が往復、旧形式の移行、壊れたデータの退避を検証。`Fixtures/bookmarks-v1.json` は出荷済みの v1 形式を固定したもので、`BookmarkRecordV1` を変えると `decodesFrozenV1Fixture` が落ちる | `make test` |
+| 永続化互換性（`bookmarks.v1`、旧キー `data`） | アプリ更新で利用者のブックマークが消える・復活する | `UserDefaultsBookmarkStorageTests` が往復、旧形式の移行、壊れたデータの退避を検証。`Fixtures/bookmarks-v1.json` は最初に出荷した v1 形式（説明等の項目なし）、`bookmarks-v1-with-details.json` は項目を足した後の形式を固定したもので、`BookmarkRecordV1` の出荷済み項目を変えると `decodesFrozenV1Fixture` / `decodesFrozenV1FixtureWithDetails` が落ちる | `make test` |
 | Swift 6 strict concurrency の退行 | 警告が積もり、実行時の競合が隠れる | プロジェクト設定 `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES`（Xcode でも同じ） | `make build` |
 | 禁止パターン・スタイルの揺れ | レビューが本質以外に時間を使う | `swift-format lint --strict`（`NeverForceUnwrap`, `NeverUseForceTry`, `NeverUseImplicitlyUnwrappedOptionals` 等） | `make lint` |
 | UI の退行（ダークモード、文字サイズ、タップ領域、VoiceOver） | 自動検出できない | 対象外。PR の検証欄に手動確認した内容を書く。確認はシミュレータで `xcrun simctl ui <UDID> appearance dark`、起動引数 `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`、Xcode の Accessibility Inspector（監査）を使う | — |
@@ -124,7 +125,8 @@ Xcode プロジェクトはフォルダ同期グループ（file-system-synchron
   diff <(python3 -m json.tool iOSEngineerCodeCheckTests/Fixtures/search-success.json) <(python3 -m json.tool build/search-success.new.json)
   ```
 
-- `bookmarks-v1.json` は保存形式の固定点なので更新しない。形式を変えるときは `bookmarks.v2` 用のフィクスチャとテストを追加し、v1 → v2 の移行テストで旧フィクスチャを読み続ける
+- `bookmarks-v1.json` と `bookmarks-v1-with-details.json` は保存形式の固定点なので更新しない。optional の項目を足したときは「項目込み」のフィクスチャをもう 1 つ追加し、既存の固定点は読み続ける。項目を減らす・型を変えるときは `bookmarks.v2` 用のフィクスチャとテストを追加し、v1 → v2 の移行テストで旧フィクスチャを読み続ける
+- `search-archived.json`（アーカイブ済みの実データ）と `search-invalid-date.json`（`pushed_at` が ISO 8601 でない）はデコードの固定点。`search-success.json` の `pushed_at` は 2026-11-02 の実応答の値
 
 ### UI テストを書くとき
 
