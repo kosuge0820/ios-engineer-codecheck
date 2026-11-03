@@ -74,6 +74,15 @@ struct RepositorySummaryTests {
         #expect(summary(.fixture(pushedAt: nil)).updatedText == nil)
     }
 
+    @Test("期間の単位は端末のロケールに関わらず日本語（文言が日本語固定のため）。桁区切りは端末のロケールに従う")
+    func updatedTextStaysJapaneseUnderOtherLocales() {
+        let english = RepositorySummary(
+            .fixture(stargazersCount: 70523), isBookmarked: false, locale: Locale(identifier: "en_US"), now: now
+        )
+        #expect(english.updatedText == "3日前に更新")
+        #expect(english.starText == "70,523")
+    }
+
     @Test("アーカイブ済みは更新日より優先して読み上げ、一覧の補助行でも更新日の代わりに示す")
     func archivedTakesPrecedenceOverUpdate() {
         let archived = Repository.fixture(

@@ -27,13 +27,17 @@ struct RepositorySummary: Equatable {
     /// アーカイブ済み（読み取り専用）の表示文。
     static let archivedText = "アーカイブ済み"
 
+    /// 期間の単位（「3日」「1か月」）の整形に使うロケール。文言が日本語固定なので、端末のロケールに関わらず日本語で整える
+    /// （桁区切りは端末のロケールに従う）。String Catalog を入れたら環境のロケールに戻す。
+    private static let textLocale = Locale(identifier: "ja_JP")
+
     let isBookmarked: Bool
 
     private let repository: Repository
     private let locale: Locale
     private let now: Date
 
-    /// `locale` は桁区切りと期間の表記に、`now` は相対日付の基準に使う。View は `@Environment(\.locale)` と `Date.now` を渡し、テストは固定する。
+    /// `locale` は桁区切りに、`now` は相対日付の基準に使う。View は `@Environment(\.locale)` と `Date.now` を渡し、テストは固定する。
     init(_ repository: Repository, isBookmarked: Bool, locale: Locale, now: Date) {
         self.repository = repository
         self.isBookmarked = isBookmarked
@@ -67,7 +71,7 @@ struct RepositorySummary: Equatable {
         guard let pushedAt = repository.pushedAt else { return nil }
         guard pushedAt < now else { return "たった今更新" }
         var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = locale
+        calendar.locale = Self.textLocale
         let elapsed = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: pushedAt, to: now)
         let units: [(Calendar.Component, Date.ComponentsFormatStyle.Field)] = [
             (.year, .year), (.month, .month), (.day, .day), (.hour, .hour), (.minute, .minute),
@@ -76,7 +80,7 @@ struct RepositorySummary: Equatable {
             return "たった今更新"
         }
         let duration = (pushedAt..<now).formatted(
-            Date.ComponentsFormatStyle(style: .wide, locale: locale, calendar: calendar, fields: [field])
+            Date.ComponentsFormatStyle(style: .wide, locale: Self.textLocale, calendar: calendar, fields: [field])
         )
         return "\(duration)前に更新"
     }
