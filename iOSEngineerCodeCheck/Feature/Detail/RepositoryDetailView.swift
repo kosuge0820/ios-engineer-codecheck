@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// リポジトリ詳細。名前を見出しに、統計をラベル付きの格子で示す。ブックマーク状態は `BookmarkStore` から導出する。
+/// リポジトリ詳細。名前を見出しに、説明文・最終更新・アーカイブ状態、統計をラベル付きの格子で示し、
+/// ブックマークの操作と GitHub 上のページへの導線を置く。ブックマーク状態は `BookmarkStore` から導出する。
 ///
 /// 色はシステムのセマンティックカラーだけを使い（ダークモード対応）、文字はテキストスタイルだけで指定する（Dynamic Type）。
 /// アクセシビリティサイズではヘッダー（`AdaptiveStack`）と統計を 1 列に並べ替える。
@@ -12,15 +13,22 @@ struct RepositoryDetailView: View {
     let repository: Repository
 
     private var summary: RepositorySummary {
-        RepositorySummary(repository, isBookmarked: bookmarkStore.isBookmarked(repository), locale: locale)
+        RepositorySummary(repository, isBookmarked: bookmarkStore.isBookmarked(repository), locale: locale, now: .now)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
+                if let descriptionText = summary.descriptionText {
+                    Text(descriptionText)
+                        .font(.body)
+                }
                 statsGrid
-                bookmarkButton
+                VStack(spacing: 12) {
+                    bookmarkButton
+                    openButton
+                }
             }
             .padding(20)
             // iPad や横向きで行が間延びしないよう読みやすい幅に収める
@@ -31,8 +39,8 @@ struct RepositoryDetailView: View {
         .navigationTitle(summary.title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // 旧データ由来の暫定 id を、検索結果から開いた実 id で置き換える（未登録・実 id 同士なら何もしない）
-            bookmarkStore.resolveProvisionalID(with: repository)
+            // 検索結果から開いたなら、保存済みの値（旧データの暫定 id や説明なしを含む）を最新の値に置き換える
+            bookmarkStore.refresh(with: repository)
         }
     }
 
@@ -43,9 +51,17 @@ struct RepositoryDetailView: View {
                 Text(summary.title)
                     .font(.title2.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
-                Label(summary.languageText, systemImage: RepositorySummary.languageSystemImage)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Group {
+                    Label(summary.languageText, systemImage: RepositorySummary.languageSystemImage)
+                    if let updatedText = summary.updatedText {
+                        Label(updatedText, systemImage: RepositorySummary.updatedSystemImage)
+                    }
+                    if summary.isArchived {
+                        Label(RepositorySummary.archivedText, systemImage: RepositorySummary.archivedSystemImage)
+                    }
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             }
         }
     }
@@ -84,6 +100,19 @@ struct RepositoryDetailView: View {
             ForEach(summary.stats) { stat in
                 StatCell(stat: stat)
             }
+        }
+    }
+
+    /// GitHub 上のページを開く（Safari 等のシステム処理に委ねる）。URL が導けない項目では出さない。
+    @ViewBuilder
+    private var openButton: some View {
+        if let webURL = summary.webURL {
+            Link(destination: webURL) {
+                Label("GitHub で開く", systemImage: RepositorySummary.openSystemImage)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
         }
     }
 

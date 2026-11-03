@@ -1,0 +1,30 @@
+[
+  {
+    "id": 44838949,
+    "fullName": "swiftlang/swift",
+    "language": "Swift",
+    "stargazersCount": 70530,
+    "watchersCount": 70530,
+    "forksCount": 10884,
+    "openIssuesCount": 9528,
+    "avatarURL": "https://avatars.githubusercontent.com/u/42816656?v=4",
+    "description": "The Swift Programming Language",
+    "htmlURL": "https://github.com/swiftlang/swift",
+    "pushedAt": "2026-11-02T14:11:31Z",
+    "isArchived": false
+  },
+  {
+    "id": 130902948,
+    "fullName": "tensorflow/swift",
+    "language": "Jupyter Notebook",
+    "stargazersCount": 6114,
+    "watchersCount": 6114,
+    "forksCount": 610,
+    "openIssuesCount": 37,
+    "avatarURL": "https://avatars.githubusercontent.com/u/15658638?v=4",
+    "description": "Swift for TensorFlow",
+    "htmlURL": "https://github.com/tensorflow/swift",
+    "pushedAt": "2022-01-12T19:55:30Z",
+    "isArchived": true
+  }
+]

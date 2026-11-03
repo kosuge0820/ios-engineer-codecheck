@@ -52,7 +52,9 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
     func save(_ repositories: [Repository]) throws {
         let records = repositories.map(BookmarkRecordV1.init)
         do {
-            defaults.set(try JSONEncoder().encode(records), forKey: Self.currentKey)
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            defaults.set(try encoder.encode(records), forKey: Self.currentKey)
         } catch {
             Log.persistence.error("ブックマークのエンコードに失敗: \(String(describing: error), privacy: .public)")
             throw BookmarkStorageError.writeFailed(key: Self.currentKey, reason: String(describing: error))
@@ -60,8 +62,10 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
     }
 
     private func decode<T: Decodable>(_ type: T.Type, from data: Data, key: String) throws -> T {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
         do {
-            return try JSONDecoder().decode(type, from: data)
+            return try decoder.decode(type, from: data)
         } catch {
             throw preserveUnreadable(data, key: key, reason: String(describing: error))
         }
@@ -79,7 +83,10 @@ struct UserDefaultsBookmarkStorage: BookmarkStoring {
     }
 }
 
-/// `bookmarks.v1` の保存形式。フィールドを変えるときはキーを上げて移行処理を追加する。
+/// `bookmarks.v1` の保存形式。
+///
+/// optional の項目は後から足したもので、無くても読める（旧データは項目なし、`nil` はキー省略で保存）。
+/// 項目を減らす・型や意味を変えるときはキーを上げて移行処理を追加する。日付は ISO 8601 文字列。
 private struct BookmarkRecordV1: Codable {
     let id: Int
     let fullName: String
@@ -89,6 +96,11 @@ private struct BookmarkRecordV1: Codable {
     let forksCount: Int
     let openIssuesCount: Int
     let avatarURL: URL
+    let description: String?
+    let htmlURL: URL?
+    let pushedAt: Date?
+    /// 旧データでは不明（nil）。`Repository` へ戻すときは false にする
+    let isArchived: Bool?
 
     init(_ repository: Repository) {
         id = repository.id
@@ -99,6 +111,10 @@ private struct BookmarkRecordV1: Codable {
         forksCount = repository.forksCount
         openIssuesCount = repository.openIssuesCount
         avatarURL = repository.owner.avatarURL
+        description = repository.description
+        htmlURL = repository.htmlURL
+        pushedAt = repository.pushedAt
+        isArchived = repository.isArchived
     }
 
     var repository: Repository {
@@ -110,7 +126,11 @@ private struct BookmarkRecordV1: Codable {
             watchersCount: watchersCount,
             forksCount: forksCount,
             openIssuesCount: openIssuesCount,
-            owner: Repository.Owner(avatarURL: avatarURL)
+            owner: Repository.Owner(avatarURL: avatarURL),
+            description: description,
+            htmlURL: htmlURL,
+            pushedAt: pushedAt,
+            isArchived: isArchived ?? false
         )
     }
 }
@@ -140,6 +160,7 @@ private struct LegacyBookmarkRecord: Decodable {
         guard let avatarURL = URL(string: owner.avatarUrl) else {
             throw InvalidAvatarURL(value: owner.avatarUrl)
         }
+        // 旧形式は説明・URL・最終更新・アーカイブ状態を持たない。検索から開き直した時点で最新の値に置き換わる（BookmarkStore.refresh）
         return Repository(
             id: Repository.provisionalID(fullName: fullName),
             fullName: fullName,
@@ -148,7 +169,11 @@ private struct LegacyBookmarkRecord: Decodable {
             watchersCount: watchersCount,
             forksCount: forksCount,
             openIssuesCount: openIssuesCount,
-            owner: Repository.Owner(avatarURL: avatarURL)
+            owner: Repository.Owner(avatarURL: avatarURL),
+            description: nil,
+            htmlURL: nil,
+            pushedAt: nil,
+            isArchived: false
         )
     }
 }

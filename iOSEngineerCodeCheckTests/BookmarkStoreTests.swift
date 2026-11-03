@@ -58,16 +58,17 @@ struct BookmarkStoreTests {
         #expect(storage.saveCount == 1)
     }
 
-    @Test("同じ id を二重に add しても 1 件のまま")
+    @Test("同じ id を二重に add しても 1 件のまま。値が変わっていれば新しい値に置き換えて保存する")
     func addIsIdempotent() {
         let storage = InMemoryBookmarkStorage()
         let store = BookmarkStore(storage: storage)
 
         store.add(.fixture(id: 1, stargazersCount: 1))
         store.add(.fixture(id: 1, stargazersCount: 2))
+        store.add(.fixture(id: 1, stargazersCount: 2))
 
-        #expect(store.bookmarks.count == 1)
-        #expect(storage.saveCount == 1)
+        #expect(store.bookmarks == [.fixture(id: 1, stargazersCount: 2)])
+        #expect(storage.saveCount == 2, "同じ値の add では保存しない")
     }
 
     @Test("remove すると一覧から消え、即座に保存される")
@@ -172,30 +173,58 @@ struct BookmarkStoreTests {
         let store = BookmarkStore(storage: storage)
         let fromSearch = Repository.fixture(id: 44_838_949, fullName: "swiftlang/swift", stargazersCount: 70_530)
 
-        store.resolveProvisionalID(with: fromSearch)
+        store.refresh(with: fromSearch)
 
         #expect(store.bookmarks == [fromSearch])
         #expect(storage.stored == [fromSearch])
         #expect(storage.saveCount == 1)
         #expect(store.isBookmarked(fromSearch), "置き換え後も Remove ボタンのままで、詳細画面の表示は変わらない")
 
-        store.resolveProvisionalID(with: fromSearch)
-        #expect(storage.saveCount == 1, "実 id になった後は何もしない")
+        store.refresh(with: fromSearch)
+        #expect(storage.saveCount == 1, "同じ値なら何もしない")
     }
 
-    @Test("resolveProvisionalID は未登録のリポジトリや実 id の項目には何もしない")
-    func resolveProvisionalIDIgnoresOthers() {
+    @Test("refresh は登録済みの項目を、検索から開いた最新の値（説明・更新日時・Star 数）に置き換えて保存する")
+    func refreshReplacesStoredValueWithNewer() {
+        let stale = Repository.fixture(id: 1, fullName: "a/one", stargazersCount: 1, description: nil, pushedAt: nil)
+        let storage = InMemoryBookmarkStorage(stored: [stale])
+        let store = BookmarkStore(storage: storage)
+        let fresh = Repository.fixture(id: 1, fullName: "a/one", stargazersCount: 99, description: "Now described")
+
+        store.refresh(with: fresh)
+
+        #expect(store.bookmarks == [fresh])
+        #expect(storage.stored == [fresh])
+        #expect(storage.saveCount == 1)
+        #expect(store.isBookmarked(stale), "id が同じなので旧い値でも登録済みと判定される")
+    }
+
+    @Test("refresh は値が同じなら保存しない（Bookmark タブから開いた場合は保存値そのものが渡る）")
+    func refreshDoesNotSaveWhenUnchanged() {
+        let stored = Repository.fixture(id: 1, fullName: "a/one")
+        let storage = InMemoryBookmarkStorage(stored: [stored])
+        let store = BookmarkStore(storage: storage)
+
+        store.refresh(with: stored)
+
+        #expect(store.bookmarks == [stored])
+        #expect(storage.saveCount == 0)
+    }
+
+    @Test("refresh は未登録のリポジトリを追加せず、暫定 id の値で上書きもしない")
+    func refreshIgnoresUnregisteredAndProvisional() {
         let real = Repository.fixture(id: 1, fullName: "a/one", stargazersCount: 1)
         let storage = InMemoryBookmarkStorage(stored: [real])
         let store = BookmarkStore(storage: storage)
 
-        store.resolveProvisionalID(with: Repository.fixture(id: 2, fullName: "b/two"))
-        store.resolveProvisionalID(with: Repository.fixture(id: 1, fullName: "a/one", stargazersCount: 99))
-        store.resolveProvisionalID(
-            with: Repository.fixture(id: Repository.provisionalID(fullName: "a/one"), fullName: "a/one")
+        store.refresh(with: Repository.fixture(id: 2, fullName: "b/two"))
+        store.refresh(
+            with: Repository.fixture(
+                id: Repository.provisionalID(fullName: "a/one"), fullName: "a/one", stargazersCount: 5
+            )
         )
 
-        #expect(store.bookmarks == [real], "未登録は追加しない。実 id 同士は更新しない。暫定 id で上書きしない")
+        #expect(store.bookmarks == [real], "未登録は追加しない。暫定 id で上書きしない")
         #expect(storage.saveCount == 0)
     }
 }

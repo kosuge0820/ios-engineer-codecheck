@@ -13,6 +13,7 @@ struct GitHubSearchClientTests {
         let response = try await client.search(SearchRequest(query: "ok", page: 1))
 
         #expect(response.items.map(\.fullName) == ["swiftlang/swift", "openstack/swift"])
+        #expect(response.items.first?.pushedAt != nil, "クライアントは ISO 8601 の日付を読める decoder を使う")
     }
 
     @Test("403 はレート制限として型付きエラーになる", arguments: [403, 429])
