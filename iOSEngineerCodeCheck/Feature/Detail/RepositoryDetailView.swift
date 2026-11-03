@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// リポジトリ詳細。名前を見出しに、統計をラベル付きの格子で示す。ブックマーク状態は `BookmarkStore` から導出する。
+/// リポジトリ詳細。名前を見出しに、説明文・最終更新・アーカイブ状態、統計をラベル付きの格子で示し、
+/// ブックマークの操作と GitHub 上のページへの導線を置く。ブックマーク状態は `BookmarkStore` から導出する。
 ///
 /// 色はシステムのセマンティックカラーだけを使い（ダークモード対応）、文字はテキストスタイルだけで指定する（Dynamic Type）。
 /// アクセシビリティサイズではヘッダー（`AdaptiveStack`）と統計を 1 列に並べ替える。
@@ -19,8 +20,15 @@ struct RepositoryDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
+                if let descriptionText = summary.descriptionText {
+                    Text(descriptionText)
+                        .font(.body)
+                }
                 statsGrid
-                bookmarkButton
+                VStack(spacing: 12) {
+                    bookmarkButton
+                    openButton
+                }
             }
             .padding(20)
             // iPad や横向きで行が間延びしないよう読みやすい幅に収める
@@ -43,9 +51,17 @@ struct RepositoryDetailView: View {
                 Text(summary.title)
                     .font(.title2.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
-                Label(summary.languageText, systemImage: RepositorySummary.languageSystemImage)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Group {
+                    Label(summary.languageText, systemImage: RepositorySummary.languageSystemImage)
+                    if let updatedText = summary.updatedText {
+                        Label(updatedText, systemImage: RepositorySummary.updatedSystemImage)
+                    }
+                    if summary.isArchived {
+                        Label(RepositorySummary.archivedText, systemImage: RepositorySummary.archivedSystemImage)
+                    }
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             }
         }
     }
@@ -84,6 +100,19 @@ struct RepositoryDetailView: View {
             ForEach(summary.stats) { stat in
                 StatCell(stat: stat)
             }
+        }
+    }
+
+    /// GitHub 上のページを開く（Safari 等のシステム処理に委ねる）。URL が導けない項目では出さない。
+    @ViewBuilder
+    private var openButton: some View {
+        if let webURL = summary.webURL {
+            Link(destination: webURL) {
+                Label("GitHub で開く", systemImage: RepositorySummary.openSystemImage)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
         }
     }
 

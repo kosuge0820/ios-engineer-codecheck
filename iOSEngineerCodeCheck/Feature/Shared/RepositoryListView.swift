@@ -48,9 +48,11 @@ extension RepositoryListView where Footer == EmptyView {
     }
 }
 
-/// 一覧の 1 行。名前を 1 行目、言語と Star 数を補助行に置く。
+/// 一覧の 1 行。名前 → 説明文（最大 2 行）→ 言語・Star 数・最終更新（またはアーカイブ済み）の 3 段。
 ///
-/// アクセシビリティサイズでは補助行を縦に並べ、単語の途中で折り返されるのを避ける（`AdaptiveStack`）。
+/// 開く前に「何をするものか」「まだ保守されているか」を判断できるようにする。
+/// 補助行はラベル単位で折り返す（`FlowLayout`）。幅が足りないときに単語の途中で折り返されず、
+/// アクセシビリティサイズでは自然に 1 行ずつになる。
 struct RepositoryRow: View {
     let summary: RepositorySummary
 
@@ -66,11 +68,22 @@ struct RepositoryRow: View {
                         .foregroundStyle(.tint)
                 }
             }
-            AdaptiveStack(horizontalSpacing: 12, verticalSpacing: 4) {
+            if let descriptionText = summary.descriptionText {
+                Text(descriptionText)
+                    .font(.subheadline)
+                    .lineLimit(2)
+            }
+            FlowLayout(horizontalSpacing: 12, verticalSpacing: 4) {
                 if let language = summary.language {
                     Label(language, systemImage: RepositorySummary.languageSystemImage)
                 }
                 Label(summary.starText, systemImage: RepositorySummary.starSystemImage)
+                // 幅を節約するため、アーカイブ済みなら更新日の代わりに示す（詳細では両方出す）
+                if summary.isArchived {
+                    Label(RepositorySummary.archivedText, systemImage: RepositorySummary.archivedSystemImage)
+                } else if let updatedText = summary.updatedText {
+                    Label(updatedText, systemImage: RepositorySummary.updatedSystemImage)
+                }
             }
             .labelStyle(.compact)
             .font(.subheadline)
